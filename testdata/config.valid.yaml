@@ -14,6 +14,7 @@ site:
     strip_fragment: true
     collapse_numeric_segments: true
     max_segments: 5
+    normalize_trailing_slash: true
 
 limits:
   max_paths: 1000

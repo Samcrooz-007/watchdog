@@ -37,6 +37,7 @@ type PathConfig struct {
 	StripFragment           bool `yaml:"strip_fragment"`
 	CollapseNumericSegments bool `yaml:"collapse_numeric_segments"`
 	MaxSegments             int  `yaml:"max_segments"`
+	NormalizeTrailingSlash  bool `yaml:"normalize_trailing_slash"`
 }
 
 // Cardinality limits
