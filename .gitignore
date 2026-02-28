@@ -1,0 +1,24 @@
+# Binaries
+/watchdog
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+*.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Config
+config.local.yaml
+
+# Data
+*.mmdb
+data/
