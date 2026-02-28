@@ -1,0 +1,25 @@
+site:
+  domain: example.com
+  salt_rotation: daily
+  collect:
+    pageviews: true
+    country: true
+    device: true
+    referrer: classify
+  custom_events:
+    - signup
+    - purchase
+  path:
+    strip_query: true
+    strip_fragment: true
+    collapse_numeric_segments: true
+    max_segments: 5
+
+limits:
+  max_paths: 1000
+  max_events_per_minute: 10000
+
+server:
+  listen_addr: :8080
+  metrics_path: /metrics
+  ingestion_path: /api/event
