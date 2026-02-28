@@ -44,6 +44,7 @@ type PathConfig struct {
 type LimitsConfig struct {
 	MaxPaths           int `yaml:"max_paths"`
 	MaxEventsPerMinute int `yaml:"max_events_per_minute"`
+	MaxSources         int `yaml:"max_sources"`
 }
 
 // Server endpoints
@@ -88,6 +89,11 @@ func (c *Config) Validate() error {
 	// Validate max_paths is positive
 	if c.Limits.MaxPaths <= 0 {
 		return fmt.Errorf("limits.max_paths must be greater than 0")
+	}
+
+	// Validate max_sources is positive
+	if c.Limits.MaxSources <= 0 {
+		return fmt.Errorf("limits.max_sources must be greater than 0")
 	}
 
 	// Set server defaults if not provided
