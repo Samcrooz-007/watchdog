@@ -1,6 +1,11 @@
 # Watchdog
 
-Privacy-preserving web analytics with Prometheus-native metrics.
+Watchdog is a privacy-preserving web analytics platform similar to Plausible,
+where data visualisation is deferred to a Prometheus-compatible dashboard such
+as Grafana. It is designed to be as simple and lightweight as possible, without
+any additional web components to worry about. You, in turn, get to use your
+existing monitoring stack to also collect information about your web
+applications tracked by Watchdog.
 
 ## Design
 
@@ -13,6 +18,9 @@ Privacy-preserving web analytics with Prometheus-native metrics.
 ## Quick Start
 
 ```bash
-go build -o watchdog ./cmd/watchdog
-./watchdog --config config.yaml
+# Build the prıject
+$ go build -o watchdog ./cmd/watchdog
+
+# Start the Watchdog daemon with your own config
+$ ./watchdog --config config.yaml
 ```
