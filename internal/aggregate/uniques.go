@@ -1,8 +1,11 @@
 package aggregate
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -76,4 +79,49 @@ func (u *UniquesEstimator) CurrentSalt() string {
 // DailySalt is exported for testing
 func DailySalt(t time.Time) string {
 	return dailySalt(t)
+}
+
+// Save persists the HLL state to disk
+func (u *UniquesEstimator) Save(path string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	data, err := u.hll.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	// Save both HLL data and current day salt
+	return os.WriteFile(path, append([]byte(u.currentDay+"\n"), data...), 0600)
+}
+
+// Load restores the HLL state from disk
+func (u *UniquesEstimator) Load(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err // File not existing is OK (first run)
+	}
+
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	// Parse saved salt and HLL data
+	parts := bytes.SplitN(data, []byte("\n"), 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid state file format")
+	}
+
+	savedSalt := string(parts[0])
+	today := dailySalt(time.Now())
+
+	// Only restore if it's the same day
+	if savedSalt == today {
+		u.currentDay = savedSalt
+		return u.hll.UnmarshalBinary(parts[1])
+	}
+
+	// Different day - start fresh
+	u.hll = hyperloglog.New()
+	u.currentDay = today
+	return nil
 }
