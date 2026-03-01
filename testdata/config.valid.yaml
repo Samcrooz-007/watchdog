@@ -19,6 +19,7 @@ site:
 limits:
   max_paths: 1000
   max_events_per_minute: 10000
+  max_sources: 100
 
 server:
   listen_addr: :8080
