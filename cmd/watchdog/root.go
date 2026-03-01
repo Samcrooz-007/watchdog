@@ -31,6 +31,15 @@ func Run(cfg *config.Config) error {
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
 	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
 
+	// Metric for tracking blocked file requests (scrapers/bots)
+	blockedRequests := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "web_blocked_requests_total",
+			Help: "File server requests blocked by security filters",
+		},
+		[]string{"reason"},
+	)
+
 	// Load HLL state from previous run if it exists
 	if cfg.Site.SaltRotation != "" {
 		log.Println("HLL state persistence enabled")
@@ -44,6 +53,7 @@ func Run(cfg *config.Config) error {
 	// Register Prometheus metrics
 	promRegistry := prometheus.NewRegistry()
 	metricsAgg.MustRegister(promRegistry)
+	promRegistry.MustRegister(blockedRequests)
 
 	// Create HTTP handlers
 	ingestionHandler := api.NewIngestionHandler(
@@ -84,7 +94,7 @@ func Run(cfg *config.Config) error {
 	// Serve whitelisted static files from /web/ if the directory exists
 	if info, err := os.Stat("web"); err == nil && info.IsDir() {
 		log.Println("Serving static files from /web/")
-		mux.Handle("/web/", safeFileServer("web"))
+		mux.Handle("/web/", safeFileServer("web", blockedRequests))
 	}
 
 	// Create HTTP server with timeouts
@@ -153,7 +163,7 @@ func basicAuth(next http.Handler, username, password string) http.Handler {
 // Creates a file server that only serves whitelisted files. Blocks dotfiles, .git, .env, etc.
 // TODO: I need to hook this up to eris somehow so I can just forward the paths that are being
 // scanned despite not being on a whitelist. Would be a good way of detecting scrapers, maybe.
-func safeFileServer(root string) http.Handler {
+func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Handler {
 	fs := http.FileServer(http.Dir(root))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Clean the path
@@ -161,6 +171,8 @@ func safeFileServer(root string) http.Handler {
 
 		// Block directory listings
 		if strings.HasSuffix(path, "/") {
+			blockedRequests.WithLabelValues("directory_listing").Inc()
+			log.Printf("Blocked directory listing attempt: %s from %s", path, r.RemoteAddr)
 			http.NotFound(w, r)
 			return
 		}
@@ -168,6 +180,8 @@ func safeFileServer(root string) http.Handler {
 		// Block dotfiles and sensitive files
 		for segment := range strings.SplitSeq(path, "/") {
 			if strings.HasPrefix(segment, ".") {
+				blockedRequests.WithLabelValues("dotfile").Inc()
+				log.Printf("Blocked dotfile access: %s from %s", path, r.RemoteAddr)
 				http.NotFound(w, r)
 				return
 			}
@@ -177,6 +191,8 @@ func safeFileServer(root string) http.Handler {
 				strings.Contains(lower, "config") ||
 				strings.HasSuffix(lower, ".bak") ||
 				strings.HasSuffix(lower, "~") {
+				blockedRequests.WithLabelValues("sensitive_file").Inc()
+				log.Printf("Blocked sensitive file access: %s from %s", path, r.RemoteAddr)
 				http.NotFound(w, r)
 				return
 			}
@@ -185,6 +201,8 @@ func safeFileServer(root string) http.Handler {
 		// Only serve .js, .html, .css files
 		ext := strings.ToLower(filepath.Ext(path))
 		if ext != ".js" && ext != ".html" && ext != ".css" {
+			blockedRequests.WithLabelValues("invalid_extension").Inc()
+			log.Printf("Blocked invalid extension: %s from %s", path, r.RemoteAddr)
 			http.NotFound(w, r)
 			return
 		}
