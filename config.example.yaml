@@ -1,0 +1,56 @@
+# Watchdog Analytics Configuration Example
+
+site:
+  # Your site's primary domain (required)
+  domain: "example.com"
+
+  # Salt rotation for IP hashing (optional, default: daily)
+  # Options: "daily", "hourly"
+  salt_rotation: "daily"
+
+  # Which dimensions to collect
+  collect:
+    pageviews: true
+    country: true
+    device: true
+    # Referrer collection mode: "off", "domain"
+    # "domain" - collect only the domain part (e.g., "google.com")
+    # "off" - don't collect referrer data
+    referrer: "domain"
+
+  # Custom events to track (optional)
+  custom_events:
+    - "signup"
+    - "purchase"
+    - "download"
+
+  # Path normalization options
+  path:
+    # Remove query strings from paths (e.g., /page?id=1 -> /page)
+    strip_query: true
+    # Remove fragments from paths (e.g., /page#section -> /page)
+    strip_fragment: true
+    # Collapse numeric segments to :id (e.g., /user/123 -> /user/:id)
+    collapse_numeric_segments: true
+    # Maximum number of path segments to keep
+    max_segments: 5
+    # Normalize trailing slashes (e.g., /page/ -> /page)
+    normalize_trailing_slash: true
+
+# Cardinality limits to prevent metric explosion
+limits:
+  # Maximum number of unique paths to track
+  max_paths: 10000
+  # Maximum number of unique referrer sources to track
+  max_sources: 500
+  # Maximum events per minute (for rate limiting, not yet implemented)
+  max_events_per_minute: 1000
+
+# Server configuration
+server:
+  # Address to listen on
+  listen_addr: ":8080"
+  # Prometheus metrics endpoint
+  metrics_path: "/metrics"
+  # Event ingestion endpoint
+  ingestion_path: "/api/event"
