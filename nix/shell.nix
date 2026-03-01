@@ -2,13 +2,15 @@
   mkShell,
   go,
   gopls,
+  golines,
   delve,
 }:
 mkShell {
   name = "go";
   packages = [
-    delve
     go
-    gopls
+    gopls # formatter
+    golines # line wrapper
+    delve # debugger
   ];
 }
