@@ -47,7 +47,13 @@ func Run(configPath string) error {
 	metricsAgg.MustRegister(promRegistry)
 
 	// Create HTTP handlers
-	ingestionHandler := api.NewIngestionHandler(*cfg, pathNormalizer, pathRegistry, refRegistry, metricsAgg)
+	ingestionHandler := api.NewIngestionHandler(
+		*cfg,
+		pathNormalizer,
+		pathRegistry,
+		refRegistry,
+		metricsAgg,
+	)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -58,7 +64,11 @@ func Run(configPath string) error {
 	})
 
 	if cfg.Security.MetricsAuth.Enabled {
-		metricsHandler = basicAuth(metricsHandler, cfg.Security.MetricsAuth.Username, cfg.Security.MetricsAuth.Password)
+		metricsHandler = basicAuth(
+			metricsHandler,
+			cfg.Security.MetricsAuth.Username,
+			cfg.Security.MetricsAuth.Password,
+		)
 	}
 
 	mux.Handle(cfg.Server.MetricsPath, metricsHandler)

@@ -112,7 +112,8 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate salt_rotation
-	if c.Site.SaltRotation != "" && c.Site.SaltRotation != "daily" && c.Site.SaltRotation != "hourly" {
+	if c.Site.SaltRotation != "" && c.Site.SaltRotation != "daily" &&
+		c.Site.SaltRotation != "hourly" {
 		return fmt.Errorf("site.salt_rotation must be 'daily' or 'hourly'")
 	}
 

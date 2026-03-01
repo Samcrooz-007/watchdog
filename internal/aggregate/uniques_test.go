@@ -92,7 +92,11 @@ func TestUniquesEstimatorDailyRotation(t *testing.T) {
 	expectedSalt := DailySalt(time.Now())
 
 	if currentSalt != expectedSalt {
-		t.Errorf("Expected estimator to use current day's salt, got %s, expected %s", currentSalt, expectedSalt)
+		t.Errorf(
+			"Expected estimator to use current day's salt, got %s, expected %s",
+			currentSalt,
+			expectedSalt,
+		)
 	}
 }
 

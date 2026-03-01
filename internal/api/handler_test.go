@@ -38,7 +38,11 @@ func TestIngestionHandler_Pageview(t *testing.T) {
 	pathNorm := normalize.NewPathNormalizer(cfg.Site.Path)
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, aggregate.NewCustomEventRegistry(100), cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(
+		pathRegistry,
+		aggregate.NewCustomEventRegistry(100),
+		cfg,
+	)
 
 	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
@@ -80,7 +84,11 @@ func TestIngestionHandler_CustomEvent(t *testing.T) {
 	pathNorm := normalize.NewPathNormalizer(cfg.Site.Path)
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, aggregate.NewCustomEventRegistry(100), cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(
+		pathRegistry,
+		aggregate.NewCustomEventRegistry(100),
+		cfg,
+	)
 
 	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
@@ -114,7 +122,11 @@ func TestIngestionHandler_WrongDomain(t *testing.T) {
 	pathNorm := normalize.NewPathNormalizer(cfg.Site.Path)
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, aggregate.NewCustomEventRegistry(100), cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(
+		pathRegistry,
+		aggregate.NewCustomEventRegistry(100),
+		cfg,
+	)
 
 	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
@@ -144,7 +156,11 @@ func TestIngestionHandler_MethodNotAllowed(t *testing.T) {
 	pathNorm := normalize.NewPathNormalizer(cfg.Site.Path)
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, aggregate.NewCustomEventRegistry(100), cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(
+		pathRegistry,
+		aggregate.NewCustomEventRegistry(100),
+		cfg,
+	)
 
 	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
@@ -171,7 +187,11 @@ func TestIngestionHandler_InvalidJSON(t *testing.T) {
 	pathNorm := normalize.NewPathNormalizer(cfg.Site.Path)
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, aggregate.NewCustomEventRegistry(100), cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(
+		pathRegistry,
+		aggregate.NewCustomEventRegistry(100),
+		cfg,
+	)
 
 	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
@@ -206,7 +226,11 @@ func TestIngestionHandler_DeviceClassification(t *testing.T) {
 	pathNorm := normalize.NewPathNormalizer(cfg.Site.Path)
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, aggregate.NewCustomEventRegistry(100), cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(
+		pathRegistry,
+		aggregate.NewCustomEventRegistry(100),
+		cfg,
+	)
 
 	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 

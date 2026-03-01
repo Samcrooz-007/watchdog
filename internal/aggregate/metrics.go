@@ -27,7 +27,11 @@ type MetricsAggregator struct {
 }
 
 // Creates a new metrics aggregator with dynamic labels based on config
-func NewMetricsAggregator(pathRegistry *PathRegistry, eventRegistry *CustomEventRegistry, cfg config.Config) *MetricsAggregator {
+func NewMetricsAggregator(
+	pathRegistry *PathRegistry,
+	eventRegistry *CustomEventRegistry,
+	cfg config.Config,
+) *MetricsAggregator {
 	// Build label names based on what's enabled in config
 	labels := []string{"path"} // path is always included
 
