@@ -40,7 +40,8 @@ func (tb *TokenBucket) Allow() bool {
 		if tb.tokens > tb.capacity {
 			tb.tokens = tb.capacity
 		}
-		tb.lastFill = now.Add(-elapsed % tb.interval)
+		// Advance lastFill by exact periods to prevent drift
+		tb.lastFill = tb.lastFill.Add(time.Duration(periods) * tb.interval)
 	}
 
 	// Check if we have tokens available
