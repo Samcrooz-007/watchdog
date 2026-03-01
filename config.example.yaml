@@ -1,8 +1,14 @@
 # Watchdog Analytics Configuration Example
 
 site:
-  # Your site's primary domain (required)
-  domain: "example.com"
+  # Domains to track (required)
+  # For single-site analytics, use a single domain:
+  domains:
+    - "example.com"
+  # For multi-site analytics, add multiple domains:
+  #   - "example.com"
+  #   - "blog.example.com"
+  #   - "shop.example.com"
 
   # Salt rotation for IP hashing (optional, default: daily)
   # Options: "daily", "hourly"
@@ -22,6 +28,11 @@ site:
     # "url" - collect full URL (not recommended - high cardinality)
     # "off" - don't collect referrer data
     referrer: "domain"
+
+    # Domain tracking (for multi-site analytics)
+    # Set to true to add "domain" dimension to pageview metrics
+    # Only useful when tracking multiple domains
+    domain: false
 
   # Custom events to track (optional)
   custom_events:
