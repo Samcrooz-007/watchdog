@@ -1,5 +1,6 @@
 site:
-  domain: example.com
+  domains:
+    - example.com
   salt_rotation: daily
   collect:
     pageviews: true
