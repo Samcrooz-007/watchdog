@@ -15,6 +15,7 @@ import (
 // Handles incoming analytics events
 type IngestionHandler struct {
 	cfg          *config.Config
+	domainMap    map[string]bool // O(1) domain validation
 	pathNorm     *normalize.PathNormalizer
 	pathRegistry *aggregate.PathRegistry
 	refRegistry  *normalize.ReferrerRegistry
@@ -40,8 +41,15 @@ func NewIngestionHandler(
 		)
 	}
 
+	// Build domain map for O(1) validation
+	domainMap := make(map[string]bool, len(cfg.Site.Domains))
+	for _, domain := range cfg.Site.Domains {
+		domainMap[domain] = true
+	}
+
 	return &IngestionHandler{
 		cfg:          cfg,
+		domainMap:    domainMap,
 		pathNorm:     pathNorm,
 		pathRegistry: pathRegistry,
 		refRegistry:  refRegistry,
@@ -95,8 +103,8 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate event
-	if err := event.Validate(h.cfg.Site.Domains); err != nil {
+	// Validate event via map lookup (also O(1))
+	if err := event.ValidateWithMap(h.domainMap); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}

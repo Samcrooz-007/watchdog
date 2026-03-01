@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 
 	"notashelf.dev/watchdog/internal/limits"
 )
@@ -46,14 +47,39 @@ func (e *Event) Validate(allowedDomains []string) error {
 	}
 
 	// Check if domain is in allowed list
-	allowed := false
-	for _, domain := range allowedDomains {
-		if e.Domain == domain {
-			allowed = true
-			break
-		}
-	}
+	allowed := slices.Contains(allowedDomains, e.Domain)
 	if !allowed {
+		return fmt.Errorf("domain not allowed")
+	}
+
+	if e.Path == "" {
+		return fmt.Errorf("path required")
+	}
+
+	if len(e.Path) > limits.MaxPathLen {
+		return fmt.Errorf("path too long")
+	}
+
+	if len(e.Referrer) > limits.MaxRefLen {
+		return fmt.Errorf("referrer too long")
+	}
+
+	// Validate screen width is in reasonable range
+	if e.Width < 0 || e.Width > limits.MaxWidth {
+		return fmt.Errorf("invalid width")
+	}
+
+	return nil
+}
+
+// ValidateWithMap checks if the event is valid using a domain map (O(1) lookup)
+func (e *Event) ValidateWithMap(allowedDomains map[string]bool) error {
+	if e.Domain == "" {
+		return fmt.Errorf("domain required")
+	}
+
+	// Check if domain is in allowed map (O(1) instead of O(n))
+	if !allowedDomains[e.Domain] {
 		return fmt.Errorf("domain not allowed")
 	}
 

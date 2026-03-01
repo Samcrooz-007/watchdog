@@ -230,3 +230,37 @@ func TestValidateEvent(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkValidate_SliceLookup(b *testing.B) {
+	// Simulate multi-site with 50 domains
+	domains := make([]string, 50)
+	for i := range 50 {
+		domains[i] = strings.Repeat("site", i) + ".com"
+	}
+
+	event := Event{
+		Domain: domains[49], // Worst case - last in list
+		Path:   "/test",
+	}
+
+	for b.Loop() {
+		_ = event.Validate(domains)
+	}
+}
+
+func BenchmarkValidate_MapLookup(b *testing.B) {
+	// Simulate multi-site with 50 domains
+	domainMap := make(map[string]bool, 50)
+	for i := range 50 {
+		domainMap[strings.Repeat("site", i)+".com"] = true
+	}
+
+	event := Event{
+		Domain: strings.Repeat("site", 49) + ".com", // any position
+		Path:   "/test",
+	}
+
+	for b.Loop() {
+		_ = event.ValidateWithMap(domainMap)
+	}
+}
