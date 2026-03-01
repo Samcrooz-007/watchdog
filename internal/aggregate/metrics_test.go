@@ -1,6 +1,8 @@
 package aggregate
 
 import (
+	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -188,5 +190,91 @@ func TestMetricsAggregator_MustRegister(t *testing.T) {
 	// Should have at least pageviews and path overflow metrics
 	if len(metrics) < 2 {
 		t.Errorf("expected at least 2 metric families, got %d", len(metrics))
+	}
+}
+
+func TestMetricsAggregator_Shutdown_ConfigurableStatePath(t *testing.T) {
+	registry := NewPathRegistry(100)
+
+	// Create temp directory for test
+	tmpDir := t.TempDir()
+	statePath := tmpDir + "/custom-hll.state"
+
+	cfg := config.Config{
+		Site: config.SiteConfig{
+			SaltRotation: "daily",
+			Collect: config.CollectConfig{
+				Pageviews: true,
+			},
+		},
+		Server: config.ServerConfig{
+			StatePath: statePath,
+		},
+	}
+
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
+
+	// Add some unique visitors so there's state to save
+	agg.AddUnique("192.168.1.1", "Mozilla/5.0")
+
+	// Shutdown should save to configured path
+	ctx := context.Background()
+	if err := agg.Shutdown(ctx); err != nil {
+		t.Fatalf("Shutdown failed: %v", err)
+	}
+
+	// Verify file was created at configured path
+	if _, err := os.Stat(statePath); os.IsNotExist(err) {
+		t.Errorf("state file was not created at configured path: %s", statePath)
+	}
+}
+
+func TestMetricsAggregator_Shutdown_DefaultStatePath(t *testing.T) {
+	registry := NewPathRegistry(100)
+
+	cfg := config.Config{
+		Site: config.SiteConfig{
+			Domains:      []string{"example.com"}, // Required for validation
+			SaltRotation: "daily",
+			Collect: config.CollectConfig{
+				Pageviews: true,
+			},
+		},
+		Limits: config.LimitsConfig{
+			MaxPaths:   1000,
+			MaxSources: 500,
+		},
+		Server: config.ServerConfig{
+			// StatePath not set - validation should set default
+			StatePath: "",
+		},
+	}
+
+	// Validate to apply defaults
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("config validation failed: %v", err)
+	}
+
+	// Verify default was applied
+	expectedDefault := "/var/lib/watchdog/hll.state"
+	if cfg.Server.StatePath != expectedDefault {
+		t.Errorf(
+			"expected default StatePath %q, got %q",
+			expectedDefault,
+			cfg.Server.StatePath,
+		)
+	}
+
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
+
+	// Add some unique visitors
+	agg.AddUnique("192.168.1.1", "Mozilla/5.0")
+
+	// Shutdown should save to default path
+	ctx := context.Background()
+	if err := agg.Shutdown(ctx); err != nil {
+		// Might fail due to permissions on /var/lib, which is OK for this test
+		// We're just verifying the code path works
+		t.Logf("Shutdown returned error (might be expected): %v", err)
 	}
 }

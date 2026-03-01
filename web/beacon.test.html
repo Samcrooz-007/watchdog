@@ -1,69 +1,78 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Watchdog Beacon Test</title>
-		<style>
-			body {
-				font-family: system-ui, -apple-system, sans-serif;
-				max-width: 600px;
-				margin: 50px auto;
-				padding: 20px;
-				line-height: 1.6;
-			}
-			button {
-				background: #4CAF50;
-				color: white;
-				padding: 12px 24px;
-				border: none;
-				border-radius: 4px;
-				cursor: pointer;
-				font-size: 16px;
-				margin: 8px 4px;
-			}
-			button:hover {
-				background: #45a049;
-			}
-			.info {
-				background: #f0f0f0;
-				padding: 12px;
-				border-radius: 4px;
-				margin: 16px 0;
-			}
-			code {
-				background: #e8e8e8;
-				padding: 2px 6px;
-				border-radius: 3px;
-				font-family: 'Courier New', monospace;
-			}
-		</style>
-	</head>
-	<body>
-		<h1>Watchdog Analytics Beacon Test</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchdog Beacon Test</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 8px 4px;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      .info {
+        background: #f0f0f0;
+        padding: 12px;
+        border-radius: 4px;
+        margin: 16px 0;
+      }
+      code {
+        background: #e8e8e8;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: "Courier New", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Watchdog Analytics Beacon Test</h1>
 
-		<div class="info">
-			<p><strong>Instructions:</strong>
-			This page automatically tracks a pageview on load.
-			Click the buttons below to test custom event tracking.</p>
-		</div>
+    <div class="info">
+      <p>
+        <strong>Instructions:</strong> This page automatically tracks a pageview
+        on load. Click the buttons below to test custom event tracking.
+      </p>
+    </div>
 
-		<h2>Custom Events</h2>
-		<button onclick="watchdog.track('signup')">Track Signup</button>
-		<button onclick="watchdog.track('purchase')">Track Purchase</button>
-		<button onclick="watchdog.track('download')">Track Download</button>
-		<button onclick="watchdog.track('newsletter_subscribe')">Track Newsletter</button>
+    <h2>Custom Events</h2>
+    <button onclick="watchdog.track('signup')">Track Signup</button>
+    <button onclick="watchdog.track('purchase')">Track Purchase</button>
+    <button onclick="watchdog.track('download')">Track Download</button>
+    <button onclick="watchdog.track('newsletter_subscribe')">
+      Track Newsletter
+    </button>
 
-		<div class="info">
-			<p><strong>API Usage:</strong></p>
-			<p>Track custom events: <code>watchdog.track('event_name')</code></p>
-			<p>Manual pageview: <code>watchdog.trackPageview()</code></p>
-		</div>
+    <div class="info">
+      <p><strong>API Usage:</strong></p>
+      <p>Track custom events: <code>watchdog.track('event_name')</code></p>
+      <p>Manual pageview: <code>watchdog.trackPageview()</code></p>
+    </div>
 
-		<h2>Console</h2>
-		<p>Open your browser's developer console (F12) and network tab to see beacon requests.</p>
+    <h2>Console</h2>
+    <p>
+      Open your browser's developer console (F12) and network tab to see beacon
+      requests.
+    </p>
 
-		<!-- Load the beacon script -->
-		<script src="/web/beacon.js"></script>
-	</body>
+    <!-- Load the beacon script -->
+    <script src="/web/beacon.js"></script>
+  </body>
 </html>

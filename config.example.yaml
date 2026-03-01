@@ -98,3 +98,6 @@ server:
   metrics_path: "/metrics"
   # Event ingestion endpoint
   ingestion_path: "/api/event"
+  # Path to persist HyperLogLog state (default: /var/lib/watchdog/hll.state)
+  # Ensures unique visitor counts survive restarts
+  state_path: "/var/lib/watchdog/hll.state"

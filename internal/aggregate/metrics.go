@@ -223,7 +223,7 @@ func (m *MetricsAggregator) Shutdown(ctx context.Context) error {
 	m.Stop()
 	// Persist HLL state if configured
 	if m.cfg.Site.SaltRotation != "" {
-		return m.estimator.Save("/tmp/watchdog-hll.state")
+		return m.estimator.Save(m.cfg.Server.StatePath)
 	}
 	return nil
 }

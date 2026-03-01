@@ -83,6 +83,7 @@ type ServerConfig struct {
 	ListenAddr    string `yaml:"listen_addr"`
 	MetricsPath   string `yaml:"metrics_path"`
 	IngestionPath string `yaml:"ingestion_path"`
+	StatePath     string `yaml:"state_path"` // path to persist HLL state
 }
 
 // YAML configuration file
@@ -169,6 +170,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Server.IngestionPath == "" {
 		c.Server.IngestionPath = "/api/event"
+	}
+	if c.Server.StatePath == "" {
+		c.Server.StatePath = "/var/lib/watchdog/hll.state"
 	}
 
 	if c.Security.MetricsAuth.Enabled {
