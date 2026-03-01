@@ -25,7 +25,7 @@ func TestMetricsAggregator_RecordPageview(t *testing.T) {
 	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
 
 	// Record pageview with all dimensions
-	agg.RecordPageview("/home", "US", "desktop", "google.com")
+	agg.RecordPageview("/home", "US", "desktop", "google.com", "")
 
 	// Verify metric was recorded
 	expected := `
@@ -54,7 +54,7 @@ func TestMetricsAggregator_RecordPageview_MinimalDimensions(t *testing.T) {
 	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
 
 	// Record pageview with only path
-	agg.RecordPageview("/home", "", "", "")
+	agg.RecordPageview("/home", "", "", "", "")
 
 	// Verify metric was recorded
 	expected := `
@@ -176,7 +176,7 @@ func TestMetricsAggregator_MustRegister(t *testing.T) {
 	agg.MustRegister(promRegistry)
 
 	// Record some metrics to ensure they show up
-	agg.RecordPageview("/test", "", "", "")
+	agg.RecordPageview("/test", "", "", "", "")
 	agg.RecordPathOverflow()
 
 	// Verify metrics can be gathered

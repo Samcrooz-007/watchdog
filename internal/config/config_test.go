@@ -10,8 +10,8 @@ func TestLoadConfig_ValidFile(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if cfg.Site.Domain != "example.com" {
-		t.Errorf("expected domain 'example.com', got '%s'", cfg.Site.Domain)
+	if len(cfg.Site.Domains) == 0 || cfg.Site.Domains[0] != "example.com" {
+		t.Errorf("expected domains to contain 'example.com', got %v", cfg.Site.Domains)
 	}
 
 	if cfg.Site.SaltRotation != "daily" {
@@ -29,7 +29,7 @@ func TestLoadConfig_MissingFile(t *testing.T) {
 func TestValidate_MaxPathsRequired(t *testing.T) {
 	cfg := &Config{
 		Site: SiteConfig{
-			Domain:       "example.com",
+			Domains:      []string{"example.com"},
 			SaltRotation: "daily",
 		},
 		Limits: LimitsConfig{

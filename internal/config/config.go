@@ -17,7 +17,7 @@ type Config struct {
 
 // Site-specific settings
 type SiteConfig struct {
-	Domain       string        `yaml:"domain"`
+	Domains      []string      `yaml:"domains"` // list of allowed domains
 	SaltRotation string        `yaml:"salt_rotation"`
 	Collect      CollectConfig `yaml:"collect"`
 	CustomEvents []string      `yaml:"custom_events"`
@@ -31,6 +31,7 @@ type CollectConfig struct {
 	Country   bool   `yaml:"country"`
 	Device    bool   `yaml:"device"`
 	Referrer  string `yaml:"referrer"`
+	Domain    bool   `yaml:"domain"` // track domain as metric dimension (for multi-site)
 }
 
 // Path normalization options
@@ -106,8 +107,8 @@ func Load(path string) (*Config, error) {
 // Check required fields and sets defaults
 func (c *Config) Validate() error {
 	// Site validation
-	if c.Site.Domain == "" {
-		return fmt.Errorf("site.domain is required")
+	if len(c.Site.Domains) == 0 {
+		return fmt.Errorf("site.domains is required")
 	}
 
 	// Validate salt_rotation

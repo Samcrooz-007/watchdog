@@ -43,6 +43,10 @@ func NewMetricsAggregator(pathRegistry *PathRegistry, eventRegistry *CustomEvent
 		labels = append(labels, "referrer")
 	}
 
+	if cfg.Site.Collect.Domain {
+		labels = append(labels, "domain")
+	}
+
 	pageviews := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "web_pageviews_total",
@@ -143,7 +147,7 @@ func sanitizeLabel(label string) string {
 }
 
 // Records a pageview with the configured dimensions
-func (m *MetricsAggregator) RecordPageview(path, country, device, referrer string) {
+func (m *MetricsAggregator) RecordPageview(path, country, device, referrer, domain string) {
 	// Build label values in the same order as label names
 	labels := prometheus.Labels{"path": sanitizeLabel(path)}
 
@@ -157,6 +161,10 @@ func (m *MetricsAggregator) RecordPageview(path, country, device, referrer strin
 
 	if m.cfg.Site.Collect.Referrer != "off" {
 		labels["referrer"] = sanitizeLabel(referrer)
+	}
+
+	if m.cfg.Site.Collect.Domain {
+		labels["domain"] = sanitizeLabel(domain)
 	}
 
 	m.pageviews.With(labels).Inc()
@@ -193,7 +201,7 @@ func (m *MetricsAggregator) AddUnique(ip, userAgent string) {
 	}
 
 	m.estimator.Add(ip, userAgent)
-	// Note: Gauge is updated in background goroutine, not here
+	// NOTE: Gauge is updated in background goroutine, not here
 }
 
 // Registers all metrics with the provided Prometheus registry

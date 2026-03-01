@@ -39,14 +39,22 @@ func ParseEvent(body io.Reader) (*Event, error) {
 	return &event, nil
 }
 
-// Validate checks if the event is valid for the given domain
-func (e *Event) Validate(expectedDomain string) error {
+// Validate checks if the event is valid for the given domains
+func (e *Event) Validate(allowedDomains []string) error {
 	if e.Domain == "" {
 		return fmt.Errorf("domain required")
 	}
 
-	if e.Domain != expectedDomain {
-		return fmt.Errorf("domain mismatch")
+	// Check if domain is in allowed list
+	allowed := false
+	for _, domain := range allowedDomains {
+		if e.Domain == domain {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return fmt.Errorf("domain not allowed")
 	}
 
 	if e.Path == "" {

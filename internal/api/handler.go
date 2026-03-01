@@ -96,7 +96,7 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate event
-	if err := event.Validate(h.cfg.Site.Domain); err != nil {
+	if err := event.Validate(h.cfg.Site.Domains); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
@@ -134,7 +134,7 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// Referrer classification
 		if h.cfg.Site.Collect.Referrer == "domain" {
-			refDomain := normalize.ExtractReferrerDomain(event.Referrer, h.cfg.Site.Domain)
+			refDomain := normalize.ExtractReferrerDomain(event.Referrer, event.Domain)
 			if refDomain != "" {
 				accepted := h.refRegistry.Add(refDomain)
 				if accepted == "other" {
@@ -144,11 +144,17 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Domain tracking (if enabled for multi-site analytics)
+		var domain string
+		if h.cfg.Site.Collect.Domain {
+			domain = event.Domain
+		}
+
 		// FIXME: Country would be extracted from IP here. For now, we skip country extraction
 		// because I have neither the time nor the patience to look into it. Return later.
 
 		// Record pageview
-		h.metricsAgg.RecordPageview(normalizedPath, country, device, referrer)
+		h.metricsAgg.RecordPageview(normalizedPath, country, device, referrer, domain)
 	}
 
 	// Return success

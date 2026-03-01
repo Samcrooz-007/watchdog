@@ -28,7 +28,7 @@ func Run(configPath string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	log.Printf("Loaded config for domain: %s", cfg.Site.Domain)
+	log.Printf("Loaded config for domains: %v", cfg.Site.Domains)
 
 	// Initialize components
 	pathNormalizer := normalize.NewPathNormalizer(cfg.Site.Path)

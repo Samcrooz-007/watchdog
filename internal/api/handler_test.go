@@ -15,7 +15,7 @@ import (
 func TestIngestionHandler_Pageview(t *testing.T) {
 	cfg := config.Config{
 		Site: config.SiteConfig{
-			Domain: "example.com",
+			Domains: []string{"example.com"},
 			Collect: config.CollectConfig{
 				Pageviews: true,
 				Country:   true,
@@ -62,7 +62,7 @@ func TestIngestionHandler_Pageview(t *testing.T) {
 func TestIngestionHandler_CustomEvent(t *testing.T) {
 	cfg := config.Config{
 		Site: config.SiteConfig{
-			Domain: "example.com",
+			Domains: []string{"example.com"},
 			Collect: config.CollectConfig{
 				Pageviews: true,
 			},
@@ -99,7 +99,7 @@ func TestIngestionHandler_CustomEvent(t *testing.T) {
 func TestIngestionHandler_WrongDomain(t *testing.T) {
 	cfg := config.Config{
 		Site: config.SiteConfig{
-			Domain: "example.com",
+			Domains: []string{"example.com"},
 			Collect: config.CollectConfig{
 				Pageviews: true,
 			},
@@ -133,7 +133,7 @@ func TestIngestionHandler_WrongDomain(t *testing.T) {
 func TestIngestionHandler_MethodNotAllowed(t *testing.T) {
 	cfg := config.Config{
 		Site: config.SiteConfig{
-			Domain: "example.com",
+			Domains: []string{"example.com"},
 		},
 		Limits: config.LimitsConfig{
 			MaxPaths:   100,
@@ -160,7 +160,7 @@ func TestIngestionHandler_MethodNotAllowed(t *testing.T) {
 func TestIngestionHandler_InvalidJSON(t *testing.T) {
 	cfg := config.Config{
 		Site: config.SiteConfig{
-			Domain: "example.com",
+			Domains: []string{"example.com"},
 		},
 		Limits: config.LimitsConfig{
 			MaxPaths:   100,
@@ -190,7 +190,7 @@ func TestIngestionHandler_InvalidJSON(t *testing.T) {
 func TestIngestionHandler_DeviceClassification(t *testing.T) {
 	cfg := config.Config{
 		Site: config.SiteConfig{
-			Domain: "example.com",
+			Domains: []string{"example.com"},
 			Collect: config.CollectConfig{
 				Pageviews: true,
 				Device:    true,

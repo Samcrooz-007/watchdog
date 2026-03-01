@@ -115,7 +115,7 @@ func TestValidateEvent(t *testing.T) {
 	tests := []struct {
 		name    string
 		event   Event
-		domain  string
+		domains []string
 		wantErr bool
 	}{
 		{
@@ -124,7 +124,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "/home",
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: false,
 		},
 		{
@@ -134,7 +134,7 @@ func TestValidateEvent(t *testing.T) {
 				Path:   "/signup",
 				Event:  "signup",
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: false,
 		},
 		{
@@ -143,7 +143,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "wrong.com",
 				Path:   "/home",
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: true,
 		},
 		{
@@ -152,7 +152,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "",
 				Path:   "/home",
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: true,
 		},
 		{
@@ -161,7 +161,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "",
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: true,
 		},
 		{
@@ -170,7 +170,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "/" + strings.Repeat("a", 3000),
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: true,
 		},
 		{
@@ -180,7 +180,7 @@ func TestValidateEvent(t *testing.T) {
 				Path:     "/home",
 				Referrer: strings.Repeat("a", 3000),
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: true,
 		},
 		{
@@ -189,14 +189,41 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "/" + strings.Repeat("a", 2000),
 			},
-			domain:  "example.com",
+			domains: []string{"example.com"},
 			wantErr: false,
+		},
+		{
+			name: "multi-site valid domain 1",
+			event: Event{
+				Domain: "site1.com",
+				Path:   "/home",
+			},
+			domains: []string{"site1.com", "site2.com"},
+			wantErr: false,
+		},
+		{
+			name: "multi-site valid domain 2",
+			event: Event{
+				Domain: "site2.com",
+				Path:   "/about",
+			},
+			domains: []string{"site1.com", "site2.com"},
+			wantErr: false,
+		},
+		{
+			name: "multi-site invalid domain",
+			event: Event{
+				Domain: "site3.com",
+				Path:   "/home",
+			},
+			domains: []string{"site1.com", "site2.com"},
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.event.Validate(tt.domain)
+			err := tt.event.Validate(tt.domains)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
