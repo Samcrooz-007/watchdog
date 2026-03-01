@@ -9,6 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"notashelf.dev/watchdog/internal/config"
+	"notashelf.dev/watchdog/internal/limits"
 )
 
 var prometheusLabelPattern = regexp.MustCompile(`^[a-zA-Z0-9_/:.-]*$`)
@@ -121,11 +122,11 @@ func NewMetricsAggregator(
 	return m
 }
 
-// Background goroutine to update the unique visitors gauge every 10 seconds
+// Background goroutine to update the unique visitors gauge periodically
 // instead of on every request. This should help with performance.
 func (m *MetricsAggregator) updateUniquesGauge() {
 	defer m.wg.Done()
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(limits.UniquesUpdatePeriod)
 	defer ticker.Stop()
 
 	for {

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"notashelf.dev/watchdog/internal/config"
+	"notashelf.dev/watchdog/internal/limits"
 )
 
 type PathNormalizer struct {
@@ -14,7 +15,7 @@ type PathNormalizer struct {
 func NewPathNormalizer(cfg config.PathConfig) *PathNormalizer {
 	return &PathNormalizer{
 		cfg:       cfg,
-		maxLength: 2048,
+		maxLength: limits.MaxPathLen,
 	}
 }
 

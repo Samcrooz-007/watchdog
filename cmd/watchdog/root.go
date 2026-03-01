@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"notashelf.dev/watchdog/internal/aggregate"
 	"notashelf.dev/watchdog/internal/api"
 	"notashelf.dev/watchdog/internal/config"
+	"notashelf.dev/watchdog/internal/limits"
 	"notashelf.dev/watchdog/internal/normalize"
 )
 
@@ -91,9 +91,9 @@ func Run(cfg *config.Config) error {
 	srv := &http.Server{
 		Addr:         cfg.Server.ListenAddr,
 		Handler:      mux,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  limits.HTTPReadTimeout,
+		WriteTimeout: limits.HTTPWriteTimeout,
+		IdleTimeout:  limits.HTTPIdleTimeout,
 	}
 
 	// Start server in goroutine
@@ -115,8 +115,8 @@ func Run(cfg *config.Config) error {
 	case sig := <-shutdown:
 		log.Printf("Received signal: %v, starting graceful shutdown", sig)
 
-		// Give outstanding requests 30 seconds to complete
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		// Give outstanding requests time to complete
+		ctx, cancel := context.WithTimeout(context.Background(), limits.ShutdownTimeout)
 		defer cancel()
 
 		// Shutdown metrics aggregator.
