@@ -18,6 +18,34 @@
       default = pkgsForEach.${system}.callPackage ./nix/shell.nix {};
     });
 
+    formatter = forEachSystem (system: let
+      pkgs = pkgsForEach.${system};
+    in
+      pkgs.writeShellApplication {
+        name = "nix3-fmt-wrapper";
+        runtimeInputs = [
+          pkgs.alejandra
+          pkgs.fd
+          pkgs.prettier
+          pkgs.go # provides gofmt
+          pkgs.golines
+        ];
+
+        text = ''
+          # Format Nix files with Alejandra
+          fd "$@" -t f -e nix -x alejandra -q '{}'
+
+          # Format HTML & Javascript files with Prettier
+          fd "$@" -t f -e html -e js -x prettier -w '{}'
+
+          # Format go files with both gofmt & golines
+          fd "$@" -t f -e go -x golines -l -w --max-len=110 \
+            --base-formatter=gofmt \
+            --shorten-comments \
+            --ignored-dirs=.direnv '{}'
+        '';
+      });
+
     nixosModules = {
       watchdog = import ./nix/module.nix self;
       default = self.nixosModules.watchdog;
