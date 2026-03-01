@@ -9,9 +9,10 @@ import (
 
 // Configuration structure
 type Config struct {
-	Site   SiteConfig   `yaml:"site"`
-	Limits LimitsConfig `yaml:"limits"`
-	Server ServerConfig `yaml:"server"`
+	Site     SiteConfig     `yaml:"site"`
+	Limits   LimitsConfig   `yaml:"limits"`
+	Server   ServerConfig   `yaml:"server"`
+	Security SecurityConfig `yaml:"security"`
 }
 
 // Site-specific settings
@@ -21,6 +22,7 @@ type SiteConfig struct {
 	Collect      CollectConfig `yaml:"collect"`
 	CustomEvents []string      `yaml:"custom_events"`
 	Path         PathConfig    `yaml:"path"`
+	Sampling     float64       `yaml:"sampling"` // 0.0-1.0, 1.0 = track all traffic
 }
 
 // Which dimensions to collect
@@ -42,9 +44,37 @@ type PathConfig struct {
 
 // Cardinality limits
 type LimitsConfig struct {
-	MaxPaths           int `yaml:"max_paths"`
-	MaxEventsPerMinute int `yaml:"max_events_per_minute"`
-	MaxSources         int `yaml:"max_sources"`
+	MaxPaths           int          `yaml:"max_paths"`
+	MaxEventsPerMinute int          `yaml:"max_events_per_minute"`
+	MaxSources         int          `yaml:"max_sources"`
+	MaxCustomEvents    int          `yaml:"max_custom_events"`
+	DeviceBreakpoints  DeviceBreaks `yaml:"device_breakpoints"`
+}
+
+// Device classification breakpoints
+type DeviceBreaks struct {
+	Mobile int `yaml:"mobile"` // < mobile = mobile
+	Tablet int `yaml:"tablet"` // < tablet = tablet, else desktop
+}
+
+// Security settings
+type SecurityConfig struct {
+	TrustedProxies []string   `yaml:"trusted_proxies"` // IPs/CIDRs to trust X-Forwarded-For from
+	CORS           CORSConfig `yaml:"cors"`
+	MetricsAuth    AuthConfig `yaml:"metrics_auth"`
+}
+
+// CORS configuration
+type CORSConfig struct {
+	Enabled        bool     `yaml:"enabled"`
+	AllowedOrigins []string `yaml:"allowed_origins"` // ["*"] or specific domains
+}
+
+// Authentication for metrics endpoint
+type AuthConfig struct {
+	Enabled  bool   `yaml:"enabled"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 // Server endpoints
@@ -74,29 +104,61 @@ func Load(path string) (*Config, error) {
 }
 
 // Check required fields and sets defaults
-// FIXME: in the future we need to validate in the config parser
 func (c *Config) Validate() error {
-	// Validate site domain is required
+	// Site validation
 	if c.Site.Domain == "" {
 		return fmt.Errorf("site.domain is required")
 	}
 
-	// Validate salt_rotation if provided
+	// Validate salt_rotation
 	if c.Site.SaltRotation != "" && c.Site.SaltRotation != "daily" && c.Site.SaltRotation != "hourly" {
 		return fmt.Errorf("site.salt_rotation must be 'daily' or 'hourly'")
 	}
 
-	// Validate max_paths is positive
+	// Validate referrer setting
+	if c.Site.Collect.Referrer != "" && c.Site.Collect.Referrer != "off" &&
+		c.Site.Collect.Referrer != "domain" && c.Site.Collect.Referrer != "url" {
+		return fmt.Errorf("site.collect.referrer must be 'off', 'domain', or 'url'")
+	}
+
+	// Validate sampling rate
+	if c.Site.Sampling < 0.0 || c.Site.Sampling > 1.0 {
+		return fmt.Errorf("site.sampling must be between 0.0 and 1.0")
+	}
+	if c.Site.Sampling == 0.0 {
+		c.Site.Sampling = 1.0 // default to 100%
+	}
+
+	// Limits validation
 	if c.Limits.MaxPaths <= 0 {
 		return fmt.Errorf("limits.max_paths must be greater than 0")
 	}
 
-	// Validate max_sources is positive
 	if c.Limits.MaxSources <= 0 {
 		return fmt.Errorf("limits.max_sources must be greater than 0")
 	}
 
-	// Set server defaults if not provided
+	if c.Limits.MaxEventsPerMinute < 0 {
+		return fmt.Errorf("limits.max_events_per_minute cannot be negative")
+	}
+
+	if c.Limits.MaxCustomEvents <= 0 {
+		c.Limits.MaxCustomEvents = 100 // Default
+	}
+
+	if c.Site.Path.MaxSegments < 0 {
+		return fmt.Errorf("site.path.max_segments cannot be negative")
+	}
+
+	// Set device breakpoint defaults
+	if c.Limits.DeviceBreakpoints.Mobile == 0 {
+		c.Limits.DeviceBreakpoints.Mobile = 768
+	}
+	if c.Limits.DeviceBreakpoints.Tablet == 0 {
+		c.Limits.DeviceBreakpoints.Tablet = 1024
+	}
+
+	// Server defaults
 	if c.Server.ListenAddr == "" {
 		c.Server.ListenAddr = ":8080"
 	}
@@ -105,6 +167,16 @@ func (c *Config) Validate() error {
 	}
 	if c.Server.IngestionPath == "" {
 		c.Server.IngestionPath = "/api/event"
+	}
+
+	if c.Security.MetricsAuth.Enabled {
+		if c.Security.MetricsAuth.Username == "" || c.Security.MetricsAuth.Password == "" {
+			return fmt.Errorf("security.metrics_auth: username and password required when enabled")
+		}
+	}
+
+	if c.Security.CORS.Enabled && len(c.Security.CORS.AllowedOrigins) == 0 {
+		return fmt.Errorf("security.cors: allowed_origins required when enabled")
 	}
 
 	return nil
