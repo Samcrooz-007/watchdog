@@ -26,10 +26,19 @@ func NewPathRegistry(maxPaths int) *PathRegistry {
 // Returns true if the path was accepted: either already existed or was added,
 // false if rejected due to reaching the limit.
 func (r *PathRegistry) Add(path string) bool {
+	// Fast path: check with read lock first
+	r.mu.RLock()
+	if _, exists := r.paths[path]; exists {
+		r.mu.RUnlock()
+		return true
+	}
+	r.mu.RUnlock()
+
+	// Slow path: acquire write lock to add
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// If path already exists, accept it
+	// Double-check after acquiring write lock
 	if _, exists := r.paths[path]; exists {
 		return true
 	}
@@ -40,7 +49,7 @@ func (r *PathRegistry) Add(path string) bool {
 		return true
 	}
 
-	// Limit reached - reject and increment overflow
+	// Limit reached, reject and increment overflow
 	r.overflowCount++
 	return false
 }
@@ -62,8 +71,8 @@ func (r *PathRegistry) Count() int {
 	return len(r.paths)
 }
 
-// Returns the number of paths that were rejected
-// due to the registry being at capacity.
+// Returns the number of paths that were rejected due to the registry being at
+// capacity.
 func (r *PathRegistry) OverflowCount() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
