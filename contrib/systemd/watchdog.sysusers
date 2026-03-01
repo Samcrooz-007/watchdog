@@ -1,0 +1,2 @@
+#Type Name     ID             GECOS                    Home directory      Shell
+u     watchdog -              "Watchdog Analytics"     /var/lib/watchdog   /usr/sbin/nologin
