@@ -80,6 +80,14 @@ $ ./watchdog -config config.yaml
 
 ## Configuration
 
+[configuration reference]: docs/configuration.md
+
+Watchdog currently supports configuration via YAML file, environment variables
+or command-line flags. You may find a more complete reference in the
+[configuration reference] document.
+
+### Quick Start
+
 Create `config.yaml`:
 
 ```yaml
@@ -111,8 +119,6 @@ limits:
 server:
   listen_addr: "127.0.0.1:8080"
 ```
-
-See [config.example.yaml](config.example.yaml) for all options.
 
 ## Usage
 
