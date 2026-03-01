@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"notashelf.dev/watchdog/internal/aggregate"
 	"notashelf.dev/watchdog/internal/config"
@@ -70,6 +71,13 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract visitor identity for unique tracking
+	ip := extractIP(r)
+	userAgent := r.Header.Get("User-Agent")
+
+	// Track unique visitor if salt rotation is enabled
+	h.metricsAgg.AddUnique(ip, userAgent)
+
 	// Process based on event type
 	if event.Event != "" {
 		// Custom event
@@ -100,6 +108,32 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Return success
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// extractIP extracts the client IP from the request
+// Checks X-Forwarded-For and X-Real-IP headers for proxied requests
+func extractIP(r *http.Request) string {
+	// Check X-Forwarded-For header (may contain multiple IPs)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// Take the first IP in the list
+		ips := strings.Split(xff, ",")
+		if len(ips) > 0 {
+			return strings.TrimSpace(ips[0])
+		}
+	}
+
+	// Check X-Real-IP header
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
+
+	// Fall back to RemoteAddr
+	ip := r.RemoteAddr
+	// Strip port if present
+	if idx := strings.LastIndex(ip, ":"); idx != -1 {
+		ip = ip[:idx]
+	}
+	return ip
 }
 
 // Classifies screen width into device categories

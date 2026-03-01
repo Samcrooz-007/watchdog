@@ -12,6 +12,8 @@ type MetricsAggregator struct {
 	pageviews    *prometheus.CounterVec
 	customEvents *prometheus.CounterVec
 	pathOverflow prometheus.Counter
+	dailyUniques prometheus.Gauge
+	estimator    *UniquesEstimator
 }
 
 // Creates a new metrics aggregator with dynamic labels based on config
@@ -54,12 +56,21 @@ func NewMetricsAggregator(registry *PathRegistry, cfg config.Config) *MetricsAgg
 		},
 	)
 
+	dailyUniques := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "web_daily_unique_visitors",
+			Help: "Estimated unique visitors today (HyperLogLog)",
+		},
+	)
+
 	return &MetricsAggregator{
 		registry:     registry,
 		cfg:          cfg,
 		pageviews:    pageviews,
 		customEvents: customEvents,
 		pathOverflow: pathOverflow,
+		dailyUniques: dailyUniques,
+		estimator:    NewUniquesEstimator(),
 	}
 }
 
@@ -93,9 +104,20 @@ func (m *MetricsAggregator) RecordPathOverflow() {
 	m.pathOverflow.Inc()
 }
 
+// Adds a visitor to the unique visitor estimator. Only tracks if salt_rotation is configured
+func (m *MetricsAggregator) AddUnique(ip, userAgent string) {
+	if m.cfg.Site.SaltRotation == "" {
+		return // only track if salt rotation is enabled
+	}
+
+	m.estimator.Add(ip, userAgent)
+	m.dailyUniques.Set(float64(m.estimator.Estimate()))
+}
+
 // Registers all metrics with the provided Prometheus registry
 func (m *MetricsAggregator) MustRegister(reg prometheus.Registerer) {
 	reg.MustRegister(m.pageviews)
 	reg.MustRegister(m.customEvents)
 	reg.MustRegister(m.pathOverflow)
+	reg.MustRegister(m.dailyUniques)
 }
