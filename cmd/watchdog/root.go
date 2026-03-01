@@ -31,9 +31,14 @@ func Run(cfg *config.Config) error {
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
 	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
 
-	// HLL state persistence is handled automatically if salt_rotation is configured
+	// Load HLL state from previous run if it exists
 	if cfg.Site.SaltRotation != "" {
 		log.Println("HLL state persistence enabled")
+		if err := metricsAgg.LoadState(); err != nil {
+			log.Printf("Could not load HLL state (might be first run): %v", err)
+		} else {
+			log.Println("HLL state restored from previous run")
+		}
 	}
 
 	// Register Prometheus metrics

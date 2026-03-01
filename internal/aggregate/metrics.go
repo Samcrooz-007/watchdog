@@ -2,7 +2,9 @@ package aggregate
 
 import (
 	"context"
+	"fmt"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,6 +26,7 @@ type MetricsAggregator struct {
 	dailyUniques  prometheus.Gauge
 	estimator     *UniquesEstimator
 	stopChan      chan struct{}
+	wg            sync.WaitGroup
 }
 
 // Creates a new metrics aggregator with dynamic labels based on config
@@ -111,6 +114,7 @@ func NewMetricsAggregator(
 
 	// Start background goroutine to update HLL gauge periodically
 	if cfg.Site.SaltRotation != "" {
+		m.wg.Add(1)
 		go m.updateUniquesGauge()
 	}
 
@@ -120,6 +124,7 @@ func NewMetricsAggregator(
 // Background goroutine to update the unique visitors gauge every 10 seconds
 // instead of on every request. This should help with performance.
 func (m *MetricsAggregator) updateUniquesGauge() {
+	defer m.wg.Done()
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
@@ -218,9 +223,33 @@ func (m *MetricsAggregator) MustRegister(reg prometheus.Registerer) {
 	reg.MustRegister(m.dailyUniques)
 }
 
+// LoadState restores HLL state from disk if it exists
+func (m *MetricsAggregator) LoadState() error {
+	if m.cfg.Site.SaltRotation == "" {
+		return nil // State persistence not enabled
+	}
+	return m.estimator.Load(m.cfg.Server.StatePath)
+}
+
 // Shutdown performs graceful shutdown operations
 func (m *MetricsAggregator) Shutdown(ctx context.Context) error {
+	// Signal goroutine to stop
 	m.Stop()
+
+	// Wait for goroutine to finish, respecting context deadline
+	done := make(chan struct{})
+	go func() {
+		m.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Goroutine finished successfully
+	case <-ctx.Done():
+		return fmt.Errorf("shutdown timeout: %w", ctx.Err())
+	}
+
 	// Persist HLL state if configured
 	if m.cfg.Site.SaltRotation != "" {
 		return m.estimator.Save(m.cfg.Server.StatePath)

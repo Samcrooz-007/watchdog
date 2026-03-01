@@ -12,14 +12,14 @@ import (
 	"github.com/axiomhq/hyperloglog"
 )
 
-// UniquesEstimator tracks unique visitors using HyperLogLog with daily salt rotation
+// Tracks unique visitors using HyperLogLog with daily salt rotation
 type UniquesEstimator struct {
 	hll        *hyperloglog.Sketch
 	currentDay string
 	mu         sync.Mutex
 }
 
-// NewUniquesEstimator creates a new unique visitor estimator
+// Creates a new unique visitor estimator
 func NewUniquesEstimator() *UniquesEstimator {
 	return &UniquesEstimator{
 		hll:        hyperloglog.New(),
@@ -53,7 +53,7 @@ func (u *UniquesEstimator) Estimate() uint64 {
 	return u.hll.Estimate()
 }
 
-// dailySalt generates a deterministic salt based on the current date
+// Cenerates a deterministic salt based on the current date
 // Same day = same salt, different day = different salt
 func dailySalt(t time.Time) string {
 	// Use UTC to ensure consistent rotation regardless of timezone
@@ -62,21 +62,21 @@ func dailySalt(t time.Time) string {
 	return hex.EncodeToString(h[:])
 }
 
-// hashVisitor creates a privacy-preserving hash of visitor identity
+// Creates a privacy-preserving hash of visitor identity
 func hashVisitor(ip, userAgent, salt string) string {
 	combined := ip + "|" + userAgent + "|" + salt
 	h := sha256.Sum256([]byte(combined))
 	return hex.EncodeToString(h[:])
 }
 
-// CurrentSalt returns the current salt for testing
+// Returns the current salt for testing
 func (u *UniquesEstimator) CurrentSalt() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	return u.currentDay
 }
 
-// DailySalt is exported for testing
+// Exported for testing
 func DailySalt(t time.Time) string {
 	return dailySalt(t)
 }
@@ -99,7 +99,10 @@ func (u *UniquesEstimator) Save(path string) error {
 func (u *UniquesEstimator) Load(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return err // File not existing is OK (first run)
+		if os.IsNotExist(err) {
+			return nil // file not existing is OK (first run)
+		}
+		return err // other errors should be reported
 	}
 
 	u.mu.Lock()
@@ -120,7 +123,7 @@ func (u *UniquesEstimator) Load(path string) error {
 		return u.hll.UnmarshalBinary(parts[1])
 	}
 
-	// Different day - start fresh
+	// Different day, start fresh
 	u.hll = hyperloglog.New()
 	u.currentDay = today
 	return nil
