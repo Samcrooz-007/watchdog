@@ -9,7 +9,7 @@ import (
 	"notashelf.dev/watchdog/internal/config"
 )
 
-var prometheusLabelPattern = regexp.MustCompile(`^[a-zA-Z0-9_/:-]*$`)
+var prometheusLabelPattern = regexp.MustCompile(`^[a-zA-Z0-9_/:.-]*$`)
 
 // Records analytics events as Prometheus metrics
 type MetricsAggregator struct {

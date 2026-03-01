@@ -74,8 +74,8 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apply sampling
-	if h.cfg.Site.Sampling < 1.0 {
+	// Apply sampling (0.0 or 1.0 = no sampling, < 1.0 = sample)
+	if h.cfg.Site.Sampling > 0.0 && h.cfg.Site.Sampling < 1.0 {
 		if h.rng.Float64() > h.cfg.Site.Sampling {
 			// Sampled out, return success but don't track
 			w.WriteHeader(http.StatusNoContent)

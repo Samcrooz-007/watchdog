@@ -5,7 +5,7 @@ site:
     pageviews: true
     country: true
     device: true
-    referrer: classify
+    referrer: domain
   custom_events:
     - signup
     - purchase

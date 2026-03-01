@@ -121,7 +121,7 @@ func TestNormalizePath(t *testing.T) {
 			name:  "very long path",
 			cfg:   config.PathConfig{},
 			input: "/" + strings.Repeat("a", 2050),
-			want:  "/" + strings.Repeat("a", 2050),
+			want:  "/", // reject overly long paths
 		},
 		{
 			name:  "dot segments only",
