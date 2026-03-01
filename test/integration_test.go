@@ -39,14 +39,14 @@ func TestEndToEnd_BasicFlow(t *testing.T) {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, *cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
 
 	// Register metrics
 	promRegistry := prometheus.NewRegistry()
 	metricsAgg.MustRegister(promRegistry)
 
 	// Create handlers
-	ingestionHandler := api.NewIngestionHandler(*cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	ingestionHandler := api.NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 	metricsHandler := promhttp.HandlerFor(promRegistry, promhttp.HandlerOpts{})
 
 	// Test pageview ingestion
@@ -152,12 +152,12 @@ func TestEndToEnd_CardinalityLimits(t *testing.T) {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, &cfg)
 
 	promRegistry := prometheus.NewRegistry()
 	metricsAgg.MustRegister(promRegistry)
 
-	handler := api.NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := api.NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	// Send more paths than limit
 	t.Run("PathOverflow", func(t *testing.T) {
@@ -200,11 +200,11 @@ func TestEndToEnd_GracefulShutdown(t *testing.T) {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, &cfg)
 
 	// Send some events to populate HLL
 	pathNorm := normalize.NewPathNormalizer(cfg.Site.Path)
-	handler := api.NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := api.NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	for i := 0; i < 10; i++ {
 		event := `{"d":"test.example.com","p":"/","r":"","w":1920}`
@@ -247,9 +247,9 @@ func TestEndToEnd_InvalidRequests(t *testing.T) {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, &cfg)
 
-	handler := api.NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := api.NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	tests := []struct {
 		name       string
@@ -327,9 +327,9 @@ func TestEndToEnd_RateLimiting(t *testing.T) {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, &cfg)
 
-	handler := api.NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := api.NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	// Send requests until rate limited
 	rateLimited := false
@@ -376,9 +376,9 @@ func TestEndToEnd_CORS(t *testing.T) {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, &cfg)
 
-	handler := api.NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := api.NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	// Test OPTIONS preflight
 	t.Run("Preflight", func(t *testing.T) {
@@ -435,9 +435,9 @@ func BenchmarkIngestionThroughput(b *testing.B) {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, &cfg)
 
-	handler := api.NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := api.NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	event := `{"d":"test.example.com","p":"/","r":"https://google.com","w":1920}`
 

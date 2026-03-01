@@ -14,7 +14,7 @@ import (
 
 // Handles incoming analytics events
 type IngestionHandler struct {
-	cfg          config.Config
+	cfg          *config.Config
 	pathNorm     *normalize.PathNormalizer
 	pathRegistry *aggregate.PathRegistry
 	refRegistry  *normalize.ReferrerRegistry
@@ -25,7 +25,7 @@ type IngestionHandler struct {
 
 // Creates a new ingestion handler
 func NewIngestionHandler(
-	cfg config.Config,
+	cfg *config.Config,
 	pathNorm *normalize.PathNormalizer,
 	pathRegistry *aggregate.PathRegistry,
 	refRegistry *normalize.ReferrerRegistry,

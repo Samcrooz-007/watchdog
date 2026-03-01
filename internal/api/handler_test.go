@@ -41,10 +41,10 @@ func TestIngestionHandler_Pageview(t *testing.T) {
 	metricsAgg := aggregate.NewMetricsAggregator(
 		pathRegistry,
 		aggregate.NewCustomEventRegistry(100),
-		cfg,
+		&cfg,
 	)
 
-	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	body := `{"d":"example.com","p":"/home?query=1","r":"https://google.com","w":1920}`
 	req := httptest.NewRequest("POST", "/api/event", bytes.NewBufferString(body))
@@ -87,10 +87,10 @@ func TestIngestionHandler_CustomEvent(t *testing.T) {
 	metricsAgg := aggregate.NewMetricsAggregator(
 		pathRegistry,
 		aggregate.NewCustomEventRegistry(100),
-		cfg,
+		&cfg,
 	)
 
-	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	body := `{"d":"example.com","p":"/signup","e":"signup"}`
 	req := httptest.NewRequest("POST", "/api/event", bytes.NewBufferString(body))
@@ -125,10 +125,10 @@ func TestIngestionHandler_WrongDomain(t *testing.T) {
 	metricsAgg := aggregate.NewMetricsAggregator(
 		pathRegistry,
 		aggregate.NewCustomEventRegistry(100),
-		cfg,
+		&cfg,
 	)
 
-	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	body := `{"d":"wrong.com","p":"/home"}`
 	req := httptest.NewRequest("POST", "/api/event", bytes.NewBufferString(body))
@@ -159,10 +159,10 @@ func TestIngestionHandler_MethodNotAllowed(t *testing.T) {
 	metricsAgg := aggregate.NewMetricsAggregator(
 		pathRegistry,
 		aggregate.NewCustomEventRegistry(100),
-		cfg,
+		&cfg,
 	)
 
-	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	req := httptest.NewRequest("GET", "/api/event", nil)
 	w := httptest.NewRecorder()
@@ -190,10 +190,10 @@ func TestIngestionHandler_InvalidJSON(t *testing.T) {
 	metricsAgg := aggregate.NewMetricsAggregator(
 		pathRegistry,
 		aggregate.NewCustomEventRegistry(100),
-		cfg,
+		&cfg,
 	)
 
-	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	body := `{invalid json}`
 	req := httptest.NewRequest("POST", "/api/event", bytes.NewBufferString(body))
@@ -229,10 +229,10 @@ func TestIngestionHandler_DeviceClassification(t *testing.T) {
 	metricsAgg := aggregate.NewMetricsAggregator(
 		pathRegistry,
 		aggregate.NewCustomEventRegistry(100),
-		cfg,
+		&cfg,
 	)
 
-	handler := NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
+	handler := NewIngestionHandler(&cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 
 	tests := []struct {
 		name  string

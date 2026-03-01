@@ -22,7 +22,7 @@ func TestMetricsAggregator_RecordPageview(t *testing.T) {
 		},
 	}
 
-	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
 
 	// Record pageview with all dimensions
 	agg.RecordPageview("/home", "US", "desktop", "google.com", "")
@@ -51,7 +51,7 @@ func TestMetricsAggregator_RecordPageview_MinimalDimensions(t *testing.T) {
 		},
 	}
 
-	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
 
 	// Record pageview with only path
 	agg.RecordPageview("/home", "", "", "", "")
@@ -78,7 +78,7 @@ func TestMetricsAggregator_PathOverflow(t *testing.T) {
 		},
 	}
 
-	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
 
 	// Add two paths successfully
 	registry.Add("/path1")
@@ -114,7 +114,7 @@ func TestMetricsAggregator_RecordCustomEvent(t *testing.T) {
 		},
 	}
 
-	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
 
 	// Record custom event
 	agg.RecordCustomEvent("signup")
@@ -141,7 +141,7 @@ func TestMetricsAggregator_RecordCustomEvent_MultipleEvents(t *testing.T) {
 		},
 	}
 
-	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
 
 	// Record multiple events
 	agg.RecordCustomEvent("signup")
@@ -170,7 +170,7 @@ func TestMetricsAggregator_MustRegister(t *testing.T) {
 	}
 
 	promRegistry := prometheus.NewRegistry()
-	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), cfg)
+	agg := NewMetricsAggregator(registry, NewCustomEventRegistry(100), &cfg)
 
 	// Register metrics
 	agg.MustRegister(promRegistry)

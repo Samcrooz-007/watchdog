@@ -15,7 +15,7 @@ var prometheusLabelPattern = regexp.MustCompile(`^[a-zA-Z0-9_/:.-]*$`)
 type MetricsAggregator struct {
 	pathRegistry  *PathRegistry
 	eventRegistry *CustomEventRegistry
-	cfg           config.Config
+	cfg           *config.Config
 	pageviews     *prometheus.CounterVec
 	customEvents  *prometheus.CounterVec
 	pathOverflow  prometheus.Counter
@@ -30,7 +30,7 @@ type MetricsAggregator struct {
 func NewMetricsAggregator(
 	pathRegistry *PathRegistry,
 	eventRegistry *CustomEventRegistry,
-	cfg config.Config,
+	cfg *config.Config,
 ) *MetricsAggregator {
 	// Build label names based on what's enabled in config
 	labels := []string{"path"} // path is always included

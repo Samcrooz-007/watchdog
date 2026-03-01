@@ -21,13 +21,7 @@ import (
 	"notashelf.dev/watchdog/internal/normalize"
 )
 
-func Run(configPath string) error {
-	// Load configuration
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
+func Run(cfg *config.Config) error {
 	log.Printf("Loaded config for domains: %v", cfg.Site.Domains)
 
 	// Initialize components
@@ -35,7 +29,7 @@ func Run(configPath string) error {
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
 	refRegistry := normalize.NewReferrerRegistry(cfg.Limits.MaxSources)
 	eventRegistry := aggregate.NewCustomEventRegistry(cfg.Limits.MaxCustomEvents)
-	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, *cfg)
+	metricsAgg := aggregate.NewMetricsAggregator(pathRegistry, eventRegistry, cfg)
 
 	// HLL state persistence is handled automatically if salt_rotation is configured
 	if cfg.Site.SaltRotation != "" {
@@ -48,7 +42,7 @@ func Run(configPath string) error {
 
 	// Create HTTP handlers
 	ingestionHandler := api.NewIngestionHandler(
-		*cfg,
+		cfg,
 		pathNormalizer,
 		pathRegistry,
 		refRegistry,
