@@ -17,16 +17,26 @@ func NewReferrerRegistry(maxSources int) *ReferrerRegistry {
 	}
 }
 
-// Attempt to add a referrer source to the registry. Returns the source to use ("other" if rejected).
+// Attempt to add a referrer source to the registry.
+// Returns the source to use ("other" if rejected).
 func (r *ReferrerRegistry) Add(source string) string {
 	if source == "direct" || source == "internal" {
 		return source
 	}
 
+	// Fast path: check with read lock first
+	r.mu.RLock()
+	if _, exists := r.sources[source]; exists {
+		r.mu.RUnlock()
+		return source
+	}
+	r.mu.RUnlock()
+
+	// Slow path: acquire write lock to add
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Already exists
+	// Double-check after acquiring write lock, another goroutine might have added it beforehand
 	if _, exists := r.sources[source]; exists {
 		return source
 	}

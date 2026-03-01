@@ -89,8 +89,9 @@ func ExtractReferrerDomain(referrer, siteDomain string) string {
 	// - "news.ycombinator.com" -> "ycombinator.com"
 	eTLDPlus1, err := publicsuffix.EffectiveTLDPlusOne(hostname)
 	if err != nil {
-		// If public suffix lookup fails, use hostname as-is
-		return hostname
+		// If public suffix lookup fails (malformed/unknown TLD), return "other"
+		// to prevent unbounded cardinality from malicious referrers
+		return "other"
 	}
 
 	return eTLDPlus1

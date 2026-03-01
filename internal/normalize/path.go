@@ -6,20 +6,22 @@ import (
 	"notashelf.dev/watchdog/internal/config"
 )
 
-const maxPathLength = 2048
-
 type PathNormalizer struct {
-	cfg config.PathConfig
+	cfg       config.PathConfig
+	maxLength int
 }
 
 func NewPathNormalizer(cfg config.PathConfig) *PathNormalizer {
-	return &PathNormalizer{cfg: cfg}
+	return &PathNormalizer{
+		cfg:       cfg,
+		maxLength: 2048,
+	}
 }
 
 func (n *PathNormalizer) Normalize(path string) string {
-	// Return as-is if path is too long
-	if len(path) > maxPathLength {
-		return path
+	// Reject paths that are too long; don't bypass normalization
+	if len(path) > n.maxLength {
+		return "/"
 	}
 
 	if path == "" {
