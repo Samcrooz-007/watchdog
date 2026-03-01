@@ -4,12 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-)
 
-const (
-	maxEventSize = 4 * 1024 // 4KB
-	maxPathLen   = 2048
-	maxRefLen    = 2048
+	"notashelf.dev/watchdog/internal/limits"
 )
 
 // Represents an incoming analytics event
@@ -24,20 +20,20 @@ type Event struct {
 // Parses an event from the request body with size limits
 func ParseEvent(body io.Reader) (*Event, error) {
 	// Limit read size to prevent memory exhaustion
-	limited := io.LimitReader(body, maxEventSize+1)
+	limited := io.LimitReader(body, limits.MaxEventSize+1)
 
 	data, err := io.ReadAll(limited)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read body: %w", err)
 	}
 
-	if len(data) > maxEventSize {
-		return nil, fmt.Errorf("event payload too large: %d bytes (max %d)", len(data), maxEventSize)
+	if len(data) > limits.MaxEventSize {
+		return nil, fmt.Errorf("event payload too large")
 	}
 
 	var event Event
 	if err := json.Unmarshal(data, &event); err != nil {
-		return nil, fmt.Errorf("invalid JSON: %w", err)
+		return nil, fmt.Errorf("invalid JSON")
 	}
 
 	return &event, nil
@@ -46,23 +42,28 @@ func ParseEvent(body io.Reader) (*Event, error) {
 // Validate checks if the event is valid for the given domain
 func (e *Event) Validate(expectedDomain string) error {
 	if e.Domain == "" {
-		return fmt.Errorf("domain is required")
+		return fmt.Errorf("domain required")
 	}
 
 	if e.Domain != expectedDomain {
-		return fmt.Errorf("domain mismatch: got %q, expected %q", e.Domain, expectedDomain)
+		return fmt.Errorf("domain mismatch")
 	}
 
 	if e.Path == "" {
-		return fmt.Errorf("path is required")
+		return fmt.Errorf("path required")
 	}
 
-	if len(e.Path) > maxPathLen {
-		return fmt.Errorf("path too long: %d bytes (max %d)", len(e.Path), maxPathLen)
+	if len(e.Path) > limits.MaxPathLen {
+		return fmt.Errorf("path too long")
 	}
 
-	if len(e.Referrer) > maxRefLen {
-		return fmt.Errorf("referrer too long: %d bytes (max %d)", len(e.Referrer), maxRefLen)
+	if len(e.Referrer) > limits.MaxRefLen {
+		return fmt.Errorf("referrer too long")
+	}
+
+	// Validate screen width is in reasonable range
+	if e.Width < 0 || e.Width > limits.MaxWidth {
+		return fmt.Errorf("invalid width")
 	}
 
 	return nil
