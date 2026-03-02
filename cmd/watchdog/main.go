@@ -11,8 +11,11 @@ import (
 )
 
 var (
-	cfgFile string
-	cfg     *config.Config
+	cfgFile   string
+	cfg       *config.Config
+	version   string
+	commit    string
+	buildDate string
 )
 
 var rootCmd = &cobra.Command{
@@ -84,7 +87,8 @@ func initConfig() {
 	}
 }
 
-func Main() {
+func Main(v, c, bd string) {
+	version, commit, buildDate = v, c, bd
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

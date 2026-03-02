@@ -17,6 +17,7 @@ import (
 	"notashelf.dev/watchdog/internal/aggregate"
 	"notashelf.dev/watchdog/internal/api"
 	"notashelf.dev/watchdog/internal/config"
+	"notashelf.dev/watchdog/internal/health"
 	"notashelf.dev/watchdog/internal/limits"
 	"notashelf.dev/watchdog/internal/normalize"
 )
@@ -54,6 +55,12 @@ func Run(cfg *config.Config) error {
 	promRegistry := prometheus.NewRegistry()
 	metricsAgg.MustRegister(promRegistry)
 	promRegistry.MustRegister(blockedRequests)
+
+	// Register health and runtime metrics
+	healthCollector := health.NewCollector(version, commit, buildDate)
+	if err := healthCollector.Register(promRegistry); err != nil {
+		return fmt.Errorf("failed to register health metrics: %w", err)
+	}
 
 	// Create HTTP handlers
 	ingestionHandler := api.NewIngestionHandler(
