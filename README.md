@@ -75,7 +75,7 @@ installation mechanism.
 $ go build -o watchdog .
 
 # Run
-$ ./watchdog -config config.yaml
+$ ./watchdog --config config.yaml
 ```
 
 ## Configuration
@@ -207,11 +207,19 @@ While not final, some of the metrics collected are as follows:
 - `web_custom_events_total{event}` - Custom event counts
 - `web_daily_unique_visitors` - Estimated unique visitors (HyperLogLog)
 
-**Health metrics:**
+**Cardinality metrics:**
 
 - `web_path_overflow_total` - Paths rejected due to cardinality limit
 - `web_referrer_overflow_total` - Referrers rejected due to limit
 - `web_event_overflow_total` - Custom events rejected due to limit
+- `web_blocked_requests_total{reason}` - File server requests blocked by security filters
+
+**Process metrics:**
+
+- `watchdog_build_info{version,commit,build_date}` - Build metadata
+- `watchdog_start_time_seconds` - Unix timestamp of process start
+- `go_*` - Go runtime metrics (goroutines, GC, memory)
+- `process_*` - OS process metrics (CPU, RSS, file descriptors)
 
 ## Privacy
 
