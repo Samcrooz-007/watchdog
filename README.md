@@ -212,7 +212,8 @@ While not final, some of the metrics collected are as follows:
 - `web_path_overflow_total` - Paths rejected due to cardinality limit
 - `web_referrer_overflow_total` - Referrers rejected due to limit
 - `web_event_overflow_total` - Custom events rejected due to limit
-- `web_blocked_requests_total{reason}` - File server requests blocked by security filters
+- `web_blocked_requests_total{reason}` - File server requests blocked by
+  security filters
 
 **Process metrics:**
 
