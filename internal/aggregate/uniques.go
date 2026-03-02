@@ -53,7 +53,7 @@ func (u *UniquesEstimator) Estimate() uint64 {
 	return u.hll.Estimate()
 }
 
-// Cenerates a deterministic salt based on the current date
+// Generates a deterministic salt based on the current date
 // Same day = same salt, different day = different salt
 func dailySalt(t time.Time) string {
 	// Use UTC to ensure consistent rotation regardless of timezone
