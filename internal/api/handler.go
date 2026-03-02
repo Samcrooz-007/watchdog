@@ -137,7 +137,7 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// Device classification
 		if h.cfg.Site.Collect.Device {
-			device = h.classifyDevice(event.Width)
+			device = h.classifyDevice(event.Width, userAgent)
 		}
 
 		// Referrer classification
@@ -271,19 +271,43 @@ func (h *IngestionHandler) ipInCIDR(ip, cidr string) bool {
 	return network.Contains(testIP)
 }
 
-// Classifies screen width into device categories using configured breakpoints
-// FIXME: we need a more robust mechanism for classifying devices. Breakpoints
-// are the only ones I can think of *right now* but I'm positive there are better
-// mechanisns. We'll get to this later.
-func (h *IngestionHandler) classifyDevice(width int) string {
-	if width == 0 {
-		return "unknown"
-	}
-	if width < h.cfg.Limits.DeviceBreakpoints.Mobile {
-		return "mobile"
-	}
-	if width < h.cfg.Limits.DeviceBreakpoints.Tablet {
+// Classifies device using both screen width and User-Agent parsing
+// Uses UA hints for better detection, falls back to width breakpoints
+func (h *IngestionHandler) classifyDevice(width int, userAgent string) string {
+	// First try User-Agent based detection for better accuracy
+	ua := strings.ToLower(userAgent)
+
+	// Tablet detection via UA (must come before mobile: Android tablets lack "mobile" keyword)
+	if strings.Contains(ua, "tablet") ||
+		strings.Contains(ua, "ipad") ||
+		(strings.Contains(ua, "android") && !strings.Contains(ua, "mobile")) {
 		return "tablet"
 	}
-	return "desktop"
+
+	// Mobile detection via UA
+	if strings.Contains(ua, "mobile") ||
+		strings.Contains(ua, "iphone") ||
+		strings.Contains(ua, "ipod") ||
+		strings.Contains(ua, "windows phone") ||
+		strings.Contains(ua, "blackberry") {
+		return "mobile"
+	}
+
+	// If UA doesn't provide clear signal, use width breakpoints
+	if width > 0 {
+		if width < h.cfg.Limits.DeviceBreakpoints.Mobile {
+			return "mobile"
+		}
+		if width < h.cfg.Limits.DeviceBreakpoints.Tablet {
+			return "tablet"
+		}
+		return "desktop"
+	}
+
+	// Default to desktop if UA suggests desktop browser
+	if userAgent != "" {
+		return "desktop"
+	}
+
+	return "unknown"
 }
