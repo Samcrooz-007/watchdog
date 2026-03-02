@@ -27,6 +27,7 @@
           pkgs.alejandra
           pkgs.fd
           pkgs.prettier
+          pkgs.deno
           pkgs.go # provides gofmt
           pkgs.golines
         ];
@@ -37,6 +38,9 @@
 
           # Format HTML & Javascript files with Prettier
           fd "$@" -t f -e html -e js -x prettier -w '{}'
+
+          # Format Markdown with Deno's Markdown formatter
+          fd "$@" -t f -e md -x deno fmt -q '{}'
 
           # Format go files with both gofmt & golines
           fd "$@" -t f -e go -x golines -l -w --max-len=110 \
