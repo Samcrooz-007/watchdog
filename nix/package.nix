@@ -22,7 +22,7 @@ buildGoModule (finalAttrs: {
 
   vendorHash = "sha256-jMqPVvMZDm406Gi2g4zNSRJMySLAN7/CR/2NgF+gqtA=";
 
-  ldflags = ["-s" "-w" "-X main.version=${finalAttrs.version}"];
+  ldflags = ["-s" "-w" "-X main.Version=${finalAttrs.version}"];
 
   # Copy web assets
   postInstall = ''
