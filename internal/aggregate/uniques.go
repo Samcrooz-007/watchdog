@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -71,8 +72,13 @@ func generateSalt(t time.Time, rotation string) string {
 
 // Creates a privacy-preserving hash of visitor identity
 func hashVisitor(ip, userAgent, salt string) string {
-	combined := ip + "|" + userAgent + "|" + salt
-	h := sha256.Sum256([]byte(combined))
+	var sb strings.Builder
+	sb.WriteString(ip)
+	sb.WriteString("|")
+	sb.WriteString(userAgent)
+	sb.WriteString("|")
+	sb.WriteString(salt)
+	h := sha256.Sum256([]byte(sb.String()))
 	return hex.EncodeToString(h[:])
 }
 
