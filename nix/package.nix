@@ -1,40 +1,55 @@
 {
   lib,
   buildGoModule,
-}:
-buildGoModule (finalAttrs: {
-  pname = "watchdog";
-  version = "0.1.0";
+}: let
+  versionInfo = lib.importJSON ../version.json;
+in
+  buildGoModule (finalAttrs: {
+    pname = "watchdog";
+    version = versionInfo.version;
 
-  src = let
-    fs = lib.fileset;
-    s = ../.;
-  in
-    fs.toSource {
-      root = s;
-      fileset = fs.unions [
-        (s + /cmd)
-        (s + /internal)
-        (s + /go.mod)
-        (s + /go.sum)
-      ];
+    src = let
+      fs = lib.fileset;
+      s = ../.;
+    in
+      fs.toSource {
+        root = s;
+        fileset = fs.unions [
+          (s + /cmd)
+          (s + /internal)
+          (s + /web)
+
+          (s + /go.mod)
+          (s + /go.sum)
+
+          # Checkphase
+          (s + /test)
+          (s + /testdata)
+          (s + /version.json)
+        ];
+      };
+
+    vendorHash = "sha256-qOCa/uj7GS1PYup12Z91zn9w3ovQg4XEHVOLCVP9qZk=";
+
+    ldflags = [
+      "-s"
+      "-w"
+      "-X main.Version=${finalAttrs.version}"
+      "-X main.Commit=${versionInfo.commit}"
+      "-X main.BuildDate=${versionInfo.buildDate}"
+    ];
+
+    # Copy web assets
+    postInstall = ''
+      mkdir -p $out/share/watchdog
+      cp -r $src/web $out/share/watchdog/
+    '';
+
+    meta = {
+      description = "Privacy-preserving web analytics with Prometheus-native metrics";
+      homepage = "https://github.com/notashelf/watchdog";
+      license = lib.licenses.eupl12;
+      maintainers = with lib.maintainers; [NotAShelf];
+      mainProgram = "watchdog";
     };
-
-  vendorHash = "sha256-jMqPVvMZDm406Gi2g4zNSRJMySLAN7/CR/2NgF+gqtA=";
-
-  ldflags = ["-s" "-w" "-X main.Version=${finalAttrs.version}"];
-
-  # Copy web assets
-  postInstall = ''
-    mkdir -p $out/share/watchdog
-    cp -r $src/web $out/share/watchdog/
-  '';
-
-  meta = {
-    description = "Privacy-preserving web analytics with Prometheus-native metrics";
-    homepage = "https://github.com/notashelf/watchdog";
-    license = lib.licenses.gpl3Only;
-    maintainers = with lib.maintainers; [NotAShelf];
-    mainProgram = "watchdog";
-  };
-})
+  })
