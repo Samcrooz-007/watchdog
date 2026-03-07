@@ -33,7 +33,7 @@ func TestDailySalt(t *testing.T) {
 }
 
 func TestUniquesEstimator(t *testing.T) {
-	estimator := NewUniquesEstimator()
+	estimator := NewUniquesEstimator("daily")
 
 	// Initially should be zero
 	if count := estimator.Estimate(); count != 0 {
@@ -87,7 +87,7 @@ func TestUniquesEstimatorDailyRotation(t *testing.T) {
 	}
 
 	// Verify estimator uses current day's salt
-	estimator := NewUniquesEstimator()
+	estimator := NewUniquesEstimator("daily")
 	currentSalt := estimator.CurrentSalt()
 	expectedSalt := DailySalt(time.Now())
 

@@ -109,7 +109,7 @@ func NewMetricsAggregator(
 		refOverflow:   refOverflow,
 		eventOverflow: eventOverflow,
 		dailyUniques:  dailyUniques,
-		estimator:     NewUniquesEstimator(),
+		estimator:     NewUniquesEstimator(cfg.Site.SaltRotation),
 		stopChan:      make(chan struct{}),
 	}
 

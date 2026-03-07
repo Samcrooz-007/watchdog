@@ -12,37 +12,39 @@ import (
 	"github.com/axiomhq/hyperloglog"
 )
 
-// Tracks unique visitors using HyperLogLog with daily salt rotation
+// Tracks unique visitors using HyperLogLog with configurable salt rotation
 type UniquesEstimator struct {
-	hll        *hyperloglog.Sketch
-	currentDay string
-	mu         sync.Mutex
+	hll      *hyperloglog.Sketch
+	salt     string
+	rotation string // "daily" or "hourly"
+	mu       sync.Mutex
 }
 
 // Creates a new unique visitor estimator
-func NewUniquesEstimator() *UniquesEstimator {
+func NewUniquesEstimator(rotation string) *UniquesEstimator {
 	return &UniquesEstimator{
-		hll:        hyperloglog.New(),
-		currentDay: dailySalt(time.Now()),
+		hll:      hyperloglog.New(),
+		salt:     generateSalt(time.Now(), rotation),
+		rotation: rotation,
 	}
 }
 
 // Add records a visitor with privacy-preserving hashing
-// Uses IP + UserAgent + daily salt to prevent cross-day correlation
+// Uses IP + UserAgent + salt to prevent cross-period correlation
 func (u *UniquesEstimator) Add(ip, userAgent string) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	// Check if we need to rotate to a new day
-	today := dailySalt(time.Now())
-	if today != u.currentDay {
-		// Reset HLL for new day
+	// Check if we need to rotate to a new period
+	currentSalt := generateSalt(time.Now(), u.rotation)
+	if currentSalt != u.salt {
+		// Reset HLL for new period
 		u.hll = hyperloglog.New()
-		u.currentDay = today
+		u.salt = currentSalt
 	}
 
-	// Hash visitor with daily salt to prevent cross-day tracking
-	hash := hashVisitor(ip, userAgent, u.currentDay)
+	// Hash visitor with salt to prevent cross-period tracking
+	hash := hashVisitor(ip, userAgent, u.salt)
 	u.hll.Insert([]byte(hash))
 }
 
@@ -53,12 +55,17 @@ func (u *UniquesEstimator) Estimate() uint64 {
 	return u.hll.Estimate()
 }
 
-// Generates a deterministic salt based on the current date
-// Same day = same salt, different day = different salt
-func dailySalt(t time.Time) string {
-	// Use UTC to ensure consistent rotation regardless of timezone
-	date := t.UTC().Format("2006-01-02")
-	h := sha256.Sum256([]byte("watchdog-salt-" + date))
+// Generates a deterministic salt based on the rotation mode
+// Daily: same day = same salt, different day = different salt
+// Hourly: same hour = same salt, different hour = different salt
+func generateSalt(t time.Time, rotation string) string {
+	var key string
+	if rotation == "hourly" {
+		key = t.UTC().Format("2006-01-02T15")
+	} else {
+		key = t.UTC().Format("2006-01-02")
+	}
+	h := sha256.Sum256([]byte("watchdog-salt-" + key))
 	return hex.EncodeToString(h[:])
 }
 
@@ -73,12 +80,12 @@ func hashVisitor(ip, userAgent, salt string) string {
 func (u *UniquesEstimator) CurrentSalt() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	return u.currentDay
+	return u.salt
 }
 
 // Exported for testing
 func DailySalt(t time.Time) string {
-	return dailySalt(t)
+	return generateSalt(t, "daily")
 }
 
 // Save persists the HLL state to disk
@@ -91,8 +98,8 @@ func (u *UniquesEstimator) Save(path string) error {
 		return err
 	}
 
-	// Save both HLL data and current day salt
-	return os.WriteFile(path, append([]byte(u.currentDay+"\n"), data...), 0600)
+	// Save both HLL data and current salt
+	return os.WriteFile(path, append([]byte(u.salt+"\n"), data...), 0600)
 }
 
 // Load restores the HLL state from disk
@@ -115,16 +122,16 @@ func (u *UniquesEstimator) Load(path string) error {
 	}
 
 	savedSalt := string(parts[0])
-	today := dailySalt(time.Now())
+	currentSalt := generateSalt(time.Now(), u.rotation)
 
-	// Only restore if it's the same day
-	if savedSalt == today {
-		u.currentDay = savedSalt
+	// Only restore if it's the same period
+	if savedSalt == currentSalt {
+		u.salt = savedSalt
 		return u.hll.UnmarshalBinary(parts[1])
 	}
 
-	// Different day, start fresh
+	// Different period, start fresh
 	u.hll = hyperloglog.New()
-	u.currentDay = today
+	u.salt = currentSalt
 	return nil
 }
