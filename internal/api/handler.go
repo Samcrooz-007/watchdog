@@ -24,7 +24,7 @@ type IngestionHandler struct {
 	metricsAgg      *aggregate.MetricsAggregator
 	rateLimiter     *ratelimit.TokenBucket
 	rng             *rand.Rand
-	trustedNetworks []*net.IPNet // Pre-parsed CIDR networks
+	trustedNetworks []*net.IPNet // pre-parsed CIDR networks
 }
 
 // Creates a new ingestion handler
@@ -209,13 +209,8 @@ func (h *IngestionHandler) handleCORS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if origin is allowed
-	allowed := false
-	for _, allowedOrigin := range h.cfg.Security.CORS.AllowedOrigins {
-		if allowedOrigin == "*" || allowedOrigin == origin {
-			allowed = true
-			break
-		}
-	}
+	// This uses map so that it's O(1)
+	allowed := h.corsOriginMap["*"] || h.corsOriginMap[origin]
 
 	if allowed {
 		if origin == "*" {
