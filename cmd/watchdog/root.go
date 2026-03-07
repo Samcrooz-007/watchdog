@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -167,6 +168,23 @@ func basicAuth(next http.Handler, username, password string) http.Handler {
 	})
 }
 
+// Sanitizes a path for logging to prevent log injection attacks. Uses strconv.Quote
+// to properly escape control characters and special bytes.
+func sanitizePathForLog(path string) string {
+	escaped := strconv.Quote(path)
+	if len(escaped) >= 2 && escaped[0] == '"' && escaped[len(escaped)-1] == '"' {
+		escaped = escaped[1 : len(escaped)-1]
+	}
+
+	// Limit path length to prevent log flooding
+	const maxLen = 200
+	if len(escaped) > maxLen {
+		return escaped[:maxLen] + "..."
+	}
+
+	return escaped
+}
+
 // Creates a file server that only serves whitelisted files. Blocks dotfiles, .git, .env, etc.
 // TODO: I need to hook this up to eris somehow so I can just forward the paths that are being
 // scanned despite not being on a whitelist. Would be a good way of detecting scrapers, maybe.
@@ -179,7 +197,7 @@ func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Ha
 		// Block directory listings
 		if strings.HasSuffix(path, "/") {
 			blockedRequests.WithLabelValues("directory_listing").Inc()
-			log.Printf("Blocked directory listing attempt: %s from %s", path, r.RemoteAddr)
+			log.Printf("Blocked directory listing attempt: %s from %s", sanitizePathForLog(path), r.RemoteAddr)
 			http.NotFound(w, r)
 			return
 		}
@@ -188,7 +206,7 @@ func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Ha
 		for segment := range strings.SplitSeq(path, "/") {
 			if strings.HasPrefix(segment, ".") {
 				blockedRequests.WithLabelValues("dotfile").Inc()
-				log.Printf("Blocked dotfile access: %s from %s", path, r.RemoteAddr)
+				log.Printf("Blocked dotfile access: %s from %s", sanitizePathForLog(path), r.RemoteAddr)
 				http.NotFound(w, r)
 				return
 			}
@@ -199,7 +217,7 @@ func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Ha
 				strings.HasSuffix(lower, ".bak") ||
 				strings.HasSuffix(lower, "~") {
 				blockedRequests.WithLabelValues("sensitive_file").Inc()
-				log.Printf("Blocked sensitive file access: %s from %s", path, r.RemoteAddr)
+				log.Printf("Blocked sensitive file access: %s from %s", sanitizePathForLog(path), r.RemoteAddr)
 				http.NotFound(w, r)
 				return
 			}
@@ -209,7 +227,7 @@ func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Ha
 		ext := strings.ToLower(filepath.Ext(path))
 		if ext != ".js" && ext != ".html" && ext != ".css" {
 			blockedRequests.WithLabelValues("invalid_extension").Inc()
-			log.Printf("Blocked invalid extension: %s from %s", path, r.RemoteAddr)
+			log.Printf("Blocked invalid extension: %s from %s", sanitizePathForLog(path), r.RemoteAddr)
 			http.NotFound(w, r)
 			return
 		}

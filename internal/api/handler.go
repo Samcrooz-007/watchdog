@@ -1,7 +1,10 @@
 package api
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	mrand "math/rand"
 	"net"
 	"net/http"
 	"strings"
@@ -23,7 +26,7 @@ type IngestionHandler struct {
 	refRegistry     *normalize.ReferrerRegistry
 	metricsAgg      *aggregate.MetricsAggregator
 	rateLimiter     *ratelimit.TokenBucket
-	rng             *rand.Rand
+	rng             *mrand.Rand
 	trustedNetworks []*net.IPNet // pre-parsed CIDR networks
 }
 
@@ -82,12 +85,19 @@ func NewIngestionHandler(
 		refRegistry:     refRegistry,
 		metricsAgg:      metricsAgg,
 		rateLimiter:     limiter,
-		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:             mrand.New(mrand.NewSource(time.Now().UnixNano())),
 		trustedNetworks: trustedNetworks,
 	}
 }
 
 func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Generate or extract request ID for tracing
+	requestID := r.Header.Get("X-Request-ID")
+	if requestID == "" {
+		requestID = generateRequestID()
+	}
+	w.Header().Set("X-Request-ID", requestID)
+
 	// Handle CORS preflight
 	if r.Method == http.MethodOptions {
 		h.handleCORS(w, r)
@@ -131,8 +141,8 @@ func (h *IngestionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate event via map lookup (also O(1))
-	if err := event.ValidateWithMap(h.domainMap); err != nil {
+	// Validate event via map lookup
+	if err := event.Validate(h.domainMap); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
@@ -321,4 +331,14 @@ func (h *IngestionHandler) classifyDevice(width int, userAgent string) string {
 	}
 
 	return "unknown"
+}
+
+// generateRequestID creates a unique request ID for tracing
+func generateRequestID() string {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to timestamp if crypto/rand fails
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(b)
 }
