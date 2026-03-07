@@ -115,7 +115,7 @@ func TestValidateEvent(t *testing.T) {
 	tests := []struct {
 		name    string
 		event   Event
-		domains []string
+		domains map[string]bool
 		wantErr bool
 	}{
 		{
@@ -124,7 +124,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "/home",
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: false,
 		},
 		{
@@ -134,7 +134,7 @@ func TestValidateEvent(t *testing.T) {
 				Path:   "/signup",
 				Event:  "signup",
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: false,
 		},
 		{
@@ -143,7 +143,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "wrong.com",
 				Path:   "/home",
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: true,
 		},
 		{
@@ -152,7 +152,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "",
 				Path:   "/home",
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: true,
 		},
 		{
@@ -161,7 +161,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "",
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: true,
 		},
 		{
@@ -170,7 +170,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "/" + strings.Repeat("a", 3000),
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: true,
 		},
 		{
@@ -180,7 +180,7 @@ func TestValidateEvent(t *testing.T) {
 				Path:     "/home",
 				Referrer: strings.Repeat("a", 3000),
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: true,
 		},
 		{
@@ -189,7 +189,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "example.com",
 				Path:   "/" + strings.Repeat("a", 2000),
 			},
-			domains: []string{"example.com"},
+			domains: map[string]bool{"example.com": true},
 			wantErr: false,
 		},
 		{
@@ -198,7 +198,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "site1.com",
 				Path:   "/home",
 			},
-			domains: []string{"site1.com", "site2.com"},
+			domains: map[string]bool{"site1.com": true, "site2.com": true},
 			wantErr: false,
 		},
 		{
@@ -207,7 +207,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "site2.com",
 				Path:   "/about",
 			},
-			domains: []string{"site1.com", "site2.com"},
+			domains: map[string]bool{"site1.com": true, "site2.com": true},
 			wantErr: false,
 		},
 		{
@@ -216,7 +216,7 @@ func TestValidateEvent(t *testing.T) {
 				Domain: "site3.com",
 				Path:   "/home",
 			},
-			domains: []string{"site1.com", "site2.com"},
+			domains: map[string]bool{"site1.com": true, "site2.com": true},
 			wantErr: true,
 		},
 	}
@@ -231,24 +231,7 @@ func TestValidateEvent(t *testing.T) {
 	}
 }
 
-func BenchmarkValidate_SliceLookup(b *testing.B) {
-	// Simulate multi-site with 50 domains
-	domains := make([]string, 50)
-	for i := range 50 {
-		domains[i] = strings.Repeat("site", i) + ".com"
-	}
-
-	event := Event{
-		Domain: domains[49], // Worst case - last in list
-		Path:   "/test",
-	}
-
-	for b.Loop() {
-		_ = event.Validate(domains)
-	}
-}
-
-func BenchmarkValidate_MapLookup(b *testing.B) {
+func BenchmarkValidate(b *testing.B) {
 	// Simulate multi-site with 50 domains
 	domainMap := make(map[string]bool, 50)
 	for i := range 50 {
@@ -256,11 +239,11 @@ func BenchmarkValidate_MapLookup(b *testing.B) {
 	}
 
 	event := Event{
-		Domain: strings.Repeat("site", 49) + ".com", // any position
+		Domain: strings.Repeat("site", 49) + ".com",
 		Path:   "/test",
 	}
 
 	for b.Loop() {
-		_ = event.ValidateWithMap(domainMap)
+		_ = event.Validate(domainMap)
 	}
 }
