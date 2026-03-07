@@ -1,6 +1,7 @@
 package watchdog
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -18,10 +19,53 @@ var (
 	buildDate string
 )
 
+type versionInfo struct {
+	Version   string `json:"version"`
+	Commit    string `json:"commit"`
+	BuildDate string `json:"buildDate"`
+}
+
+func getVersion() string {
+	if version != "" {
+		return version
+	}
+	data, err := os.ReadFile("version.json")
+	if err != nil {
+		return "dev"
+	}
+	var v versionInfo
+	if err := json.Unmarshal(data, &v); err != nil {
+		return "dev"
+	}
+	if v.Version != "" {
+		return v.Version
+	}
+	return "dev"
+}
+
+func getCommit() string {
+	if commit != "" {
+		return commit
+	}
+	data, err := os.ReadFile("version.json")
+	if err != nil {
+		return "none"
+	}
+	var v versionInfo
+	if err := json.Unmarshal(data, &v); err != nil {
+		return "none"
+	}
+	if v.Commit != "" {
+		return v.Commit
+	}
+	return "none"
+}
+
 var rootCmd = &cobra.Command{
-	Use:   "watchdog",
-	Short: "Privacy-first web analytics with Prometheus metrics",
-	Long:  `Watchdog is a lightweight, privacy-first analytics system that aggregates web traffic data.`,
+	Use:     "watchdog",
+	Short:   "Privacy-first web analytics with Prometheus metrics",
+	Long:    `Watchdog is a lightweight, privacy-first analytics system that aggregates web traffic data.`,
+	Version: getVersion() + "\ncommit: " + getCommit(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return Run(cfg)
 	},

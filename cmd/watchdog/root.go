@@ -57,7 +57,7 @@ func Run(cfg *config.Config) error {
 	promRegistry.MustRegister(blockedRequests)
 
 	// Register health and runtime metrics
-	healthCollector := health.NewCollector(version, commit, buildDate)
+	healthCollector := health.NewCollector(getVersion(), getCommit(), buildDate)
 	if err := healthCollector.Register(promRegistry); err != nil {
 		return fmt.Errorf("failed to register health metrics: %w", err)
 	}
