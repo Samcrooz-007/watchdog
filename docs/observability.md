@@ -6,12 +6,17 @@ Grafana.
 
 > [!IMPORTANT]
 >
-> **Why you need Prometheus:**
+> **Why you need a time-series database:**
 >
 > - Watchdog exposes _current state_ (counters, gauges)
-> - Prometheus _scrapes periodically_ and _stores time-series data_
-> - Grafana _visualizes_ the historical data from Prometheus
+> - A TSDB _scrapes periodically_ and _stores time-series data_
+> - Grafana _visualizes_ the historical data
 > - Grafana cannot directly scrape Prometheus `/metrics` endpoints
+>
+> **Compatible databases:**
+>
+> - [Prometheus](#prometheus-setup),
+> - [VictoriaMetrics](#victoriametrics), or any Prometheus-compatible scraper
 
 ## Prometheus Setup
 
@@ -124,7 +129,7 @@ For multiple Watchdog instances:
       datasources.settings.datasources = [{
         name = "Prometheus";
         type = "prometheus";
-        url = "http://localhost:9090";
+        url = "http://localhost:9090";  # Or "http://localhost:8428" for VictoriaMetrics
         isDefault = true;
       }];
     };
@@ -228,7 +233,34 @@ sum by (instance) (rate(web_pageviews_total[5m]))
 
 ### VictoriaMetrics
 
-Drop-in Prometheus replacement with better performance and compression:
+VictoriaMetrics is a fast, cost-effective monitoring solution and time-series
+database that is 100% compatible with Prometheus exposition format. Watchdog's
+`/metrics` endpoint can be scraped directly by VictoriaMetrics without requiring
+Prometheus.
+
+#### Direct Scraping (Recommended)
+
+VictoriaMetrics single-node mode can scrape Watchdog directly using standard
+Prometheus scrape configuration:
+
+**Configuration file (`/etc/victoriametrics/scrape.yml`):**
+
+```yaml
+scrape_configs:
+  - job_name: "watchdog"
+    static_configs:
+      - targets: ["localhost:8080"]
+    scrape_interval: 15s
+    metrics_path: /metrics
+```
+
+**Run VictoriaMetrics:**
+
+```bash
+victoria-metrics -promscrape.config=/etc/victoriametrics/scrape.yml
+```
+
+**NixOS configuration:**
 
 ```nix
 {
@@ -236,14 +268,83 @@ Drop-in Prometheus replacement with better performance and compression:
     enable = true;
     listenAddress = ":8428";
     retentionPeriod = "12month";
+
+    # Define scrape configs directly. 'prometheusConfig' is the configuration for
+    # Prometheus-style metrics endpoints, which Watchdog exports.
+    prometheusConfig = {
+      scrape_configs = [
+        {
+          job_name = "watchdog";
+          scrape_interval = "15s";
+          static_configs = [{
+            targets = [ "localhost:8080" ]; # replace the port
+          }];
+        }
+      ];
+    };
+  };
+}
+```
+
+#### Using `vmagent`
+
+Alternatively, for distributed setups or when you need more advanced features
+like relabeling, you may use `vmagent`:
+
+```nix
+{
+  services.vmagent = {
+    enable = true;
+    remoteWriteUrl = "http://localhost:8428/api/v1/write";
+
+    prometheusConfig = {
+      scrape_configs = [
+        {
+          job_name = "watchdog";
+          static_configs = [{
+            targets = [ "localhost:8080" ];
+          }];
+        }
+      ];
+    };
   };
 
-  # Configure Prometheus to remote-write to VictoriaMetrics
+  services.victoriametrics = {
+    enable = true;
+    listenAddress = ":8428";
+  };
+}
+```
+
+#### Prometheus Remote Write
+
+If you are migrating from Prometheus, or if you need PromQL compatibility, or if
+you just really like using Prometheus for some inexplicable reason you may keep
+Prometheus but use VictoriaMetrics to remote-write.
+
+```nix
+{
   services.prometheus = {
     enable = true;
+    port = 9090;
+
+    scrapeConfigs = [
+      {
+        job_name = "watchdog";
+        static_configs = [{
+          targets = [ "localhost:8080" ];
+        }];
+      }
+    ];
+
     remoteWrite = [{
       url = "http://localhost:8428/api/v1/write";
     }];
+  };
+
+  services.victoriametrics = {
+    enable = true;
+    listenAddress = ":8428";
   };
 }
 ```
@@ -274,10 +375,10 @@ metrics:
 
 ## Monitoring the Monitoring
 
-Monitor Prometheus itself:
+Monitor your scraper:
 
 ```promql
-# Prometheus scrape success rate
+# Scrape success rate
 up{job="watchdog"}
 
 # Scrape duration
@@ -287,14 +388,9 @@ scrape_duration_seconds{job="watchdog"}
 time() - timestamp(up{job="watchdog"})
 ```
 
-## Additional Recommendations
+For VictoriaMetrics, you can also monitor ingestion stats:
 
-1. **Retention**: Set `--storage.tsdb.retention.time=30d` or longer based on
-   disk space
-2. **Backups**: Back up `/var/lib/prometheus` periodically (or whatever your
-   state directory is)
-3. **Alerting**: Configure Prometheus alerting rules for critical metrics
-4. **High Availability**: Run multiple Prometheus instances with identical
-   configs
-5. **Remote Storage**: For long-term storage, use Thanos, Cortex, or
-   VictoriaMetrics
+```bash
+# VM internal metrics
+curl http://localhost:8428/metrics | grep vm_rows_inserted_total
+```
