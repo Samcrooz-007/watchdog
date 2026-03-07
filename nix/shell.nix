@@ -4,6 +4,7 @@
   gopls,
   golines,
   delve,
+  golangci-lint,
 }:
 mkShell {
   name = "go";
@@ -12,5 +13,6 @@ mkShell {
     gopls # formatter
     golines # line wrapper
     delve # debugger
+    golangci-lint # linter
   ];
 }

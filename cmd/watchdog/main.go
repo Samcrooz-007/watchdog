@@ -82,9 +82,9 @@ func init() {
 		String("ingestion-path", "", "ingestion endpoint path (overrides config)")
 
 	// Bind flags to viper
-	viper.BindPFlag("server.listen_addr", rootCmd.PersistentFlags().Lookup("listen-addr"))
-	viper.BindPFlag("server.metrics_path", rootCmd.PersistentFlags().Lookup("metrics-path"))
-	viper.BindPFlag("server.ingestion_path", rootCmd.PersistentFlags().Lookup("ingestion-path"))
+	_ = viper.BindPFlag("server.listen_addr", rootCmd.PersistentFlags().Lookup("listen-addr"))
+	_ = viper.BindPFlag("server.metrics_path", rootCmd.PersistentFlags().Lookup("metrics-path"))
+	_ = viper.BindPFlag("server.ingestion_path", rootCmd.PersistentFlags().Lookup("ingestion-path"))
 }
 
 func initConfig() {

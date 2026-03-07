@@ -344,7 +344,7 @@ func TestMetricsAggregator_Shutdown_WaitsForGoroutine(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		ctx := context.Background()
-		agg.Shutdown(ctx)
+		_ = agg.Shutdown(ctx)
 		close(done)
 	}()
 
