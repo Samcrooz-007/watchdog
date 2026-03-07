@@ -25,18 +25,23 @@ type versionInfo struct {
 	BuildDate string `json:"buildDate"`
 }
 
+func getVersionInfo() versionInfo {
+	data, err := os.ReadFile("version.json")
+	if err != nil {
+		return versionInfo{}
+	}
+	var v versionInfo
+	if err := json.Unmarshal(data, &v); err != nil {
+		return versionInfo{}
+	}
+	return v
+}
+
 func getVersion() string {
 	if version != "" {
 		return version
 	}
-	data, err := os.ReadFile("version.json")
-	if err != nil {
-		return "dev"
-	}
-	var v versionInfo
-	if err := json.Unmarshal(data, &v); err != nil {
-		return "dev"
-	}
+	v := getVersionInfo()
 	if v.Version != "" {
 		return v.Version
 	}
@@ -47,14 +52,7 @@ func getCommit() string {
 	if commit != "" {
 		return commit
 	}
-	data, err := os.ReadFile("version.json")
-	if err != nil {
-		return "none"
-	}
-	var v versionInfo
-	if err := json.Unmarshal(data, &v); err != nil {
-		return "none"
-	}
+	v := getVersionInfo()
 	if v.Commit != "" {
 		return v.Commit
 	}
