@@ -285,8 +285,18 @@ func sanitizePathForLog(path string) string {
 func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Handler {
 	fs := http.FileServer(http.Dir(root))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Clean the path
-		path := filepath.Clean(r.URL.Path)
+		// Strip the /web/ prefix first, then clean the path
+		// This ensures validation runs on the same path that will be served
+		prefix := "/web/"
+		if !strings.HasPrefix(r.URL.Path, prefix) {
+			// This shouldn't happen if routing is correct, but handle it anyway
+			http.NotFound(w, r)
+			return
+		}
+
+		// Get the path after the prefix and clean it
+		relPath := strings.TrimPrefix(r.URL.Path, prefix)
+		path := filepath.Clean("/" + relPath)
 
 		// Block directory listings
 		if strings.HasSuffix(path, "/") {
@@ -305,6 +315,7 @@ func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Ha
 				return
 			}
 			// Block common sensitive files
+			// FIXME: make this a configuration option
 			lower := strings.ToLower(segment)
 			if strings.Contains(lower, ".env") ||
 				strings.Contains(lower, "config") ||
@@ -326,6 +337,8 @@ func safeFileServer(root string, blockedRequests *prometheus.CounterVec) http.Ha
 			return
 		}
 
-		http.StripPrefix("/web/", fs).ServeHTTP(w, r)
+		// Serve the file
+		// Validation and serving use the same cleaned path
+		fs.ServeHTTP(w, r)
 	})
 }
