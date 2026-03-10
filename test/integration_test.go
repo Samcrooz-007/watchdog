@@ -195,6 +195,9 @@ func TestEndToEnd_GracefulShutdown(t *testing.T) {
 			MaxSources:      50,
 			MaxCustomEvents: 10,
 		},
+		Server: config.ServerConfig{
+			StatePath: "/tmp/watchdog-test.state",
+		},
 	}
 
 	pathRegistry := aggregate.NewPathRegistry(cfg.Limits.MaxPaths)
@@ -223,12 +226,12 @@ func TestEndToEnd_GracefulShutdown(t *testing.T) {
 	}
 
 	// Verify state file was created
-	if _, err := os.Stat("/tmp/watchdog-hll.state"); os.IsNotExist(err) {
+	if _, err := os.Stat("/tmp/watchdog-test.state"); os.IsNotExist(err) {
 		t.Error("HLL state file was not created")
 	}
 
 	// Cleanup
-	os.Remove("/tmp/watchdog-hll.state")
+	os.Remove("/tmp/watchdog-test.state")
 }
 
 func TestEndToEnd_InvalidRequests(t *testing.T) {
