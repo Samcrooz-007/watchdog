@@ -341,8 +341,12 @@ func (h *IngestionHandler) classifyDevice(width int, userAgent string) string {
 	return "unknown"
 }
 
-// generateRequestID creates a unique request ID for tracing
+// Creates a unique request ID for tracing.
+// Uses 8 bytes (64 bits) of randomness which produces 16 hex characters.
+// 2^64 possible IDs (~18 quintillion) provides sufficient uniqueness for
+// request tracing while keeping IDs reasonably short in logs and headers.
 func generateRequestID() string {
+	// 8 bytes = 64 bits = 16 hex chars = 2^64 possible IDs
 	b := make([]byte, 8)
 	if _, err := rand.Read(b); err != nil {
 		// Fallback to timestamp if crypto/rand fails
