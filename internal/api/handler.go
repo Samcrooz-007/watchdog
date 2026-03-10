@@ -262,7 +262,10 @@ func (h *IngestionHandler) extractIP(r *http.Request) string {
 		for i := len(ips) - 1; i >= 0; i-- {
 			ip := strings.TrimSpace(ips[i])
 			if testIP := net.ParseIP(ip); testIP != nil {
-				return ip
+				// Only accept this IP if it's NOT from a trusted proxy
+				if !h.ipInNetworks(ip, h.trustedNetworks) {
+					return ip
+				}
 			}
 		}
 	}
