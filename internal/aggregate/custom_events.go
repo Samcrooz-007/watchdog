@@ -54,3 +54,20 @@ func (r *CustomEventRegistry) OverflowCount() int {
 	defer r.mu.RUnlock()
 	return r.overflowCount
 }
+
+// Contains checks if an event name exists in the registry.
+func (r *CustomEventRegistry) Contains(eventName string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	_, exists := r.events[eventName]
+	return exists
+}
+
+// Count returns the number of unique events in the registry.
+func (r *CustomEventRegistry) Count() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return len(r.events)
+}

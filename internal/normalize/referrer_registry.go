@@ -56,3 +56,20 @@ func (r *ReferrerRegistry) OverflowCount() int {
 	defer r.mu.RUnlock()
 	return r.overflowCount
 }
+
+// Contains checks if a source exists in the registry.
+func (r *ReferrerRegistry) Contains(source string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	_, exists := r.sources[source]
+	return exists
+}
+
+// Count returns the number of unique sources in the registry.
+func (r *ReferrerRegistry) Count() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return len(r.sources)
+}

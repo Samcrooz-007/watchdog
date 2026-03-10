@@ -100,6 +100,10 @@ func Run(cfg *config.Config) error {
 		metricsHandler = rateLimitMiddleware(metricsHandler, metricsRateLimiter)
 	}
 
+	// Add response size limit to metrics endpoint (10MB max)
+	const maxMetricsResponseSize = 10 * 1024 * 1024 // 10MB
+	metricsHandler = responseSizeLimitMiddleware(metricsHandler, maxMetricsResponseSize)
+
 	mux.Handle(cfg.Server.MetricsPath, metricsHandler)
 
 	// Ingestion endpoint
@@ -188,6 +192,41 @@ func rateLimitMiddleware(next http.Handler, limiter *ratelimit.TokenBucket) http
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// Wraps http.ResponseWriter to enforce max response size
+type limitedResponseWriter struct {
+	http.ResponseWriter
+	maxSize       int
+	written       int
+	limitExceeded bool
+}
+
+func (w *limitedResponseWriter) Write(p []byte) (int, error) {
+	if w.limitExceeded {
+		return 0, fmt.Errorf("response size limit exceeded")
+	}
+
+	if w.written+len(p) > w.maxSize {
+		w.limitExceeded = true
+		w.Header().Set("X-Response-Truncated", "true")
+		http.Error(w.ResponseWriter, "Response size limit exceeded", http.StatusInternalServerError)
+		return 0, fmt.Errorf("response size limit exceeded: %d bytes", w.maxSize)
+	}
+	n, err := w.ResponseWriter.Write(p)
+	w.written += n
+	return n, err
+}
+
+// Wraps a handler with response size limiting
+func responseSizeLimitMiddleware(next http.Handler, maxSize int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		limited := &limitedResponseWriter{
+			ResponseWriter: w,
+			maxSize:        maxSize,
+		}
+		next.ServeHTTP(limited, r)
 	})
 }
 
