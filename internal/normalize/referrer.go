@@ -1,6 +1,7 @@
 package normalize
 
 import (
+	"net"
 	"net/url"
 	"strings"
 
@@ -21,34 +22,20 @@ func isInternalHost(hostname string) bool {
 		return true
 	}
 
-	// Private IPv4 ranges (RFC1918)
-	if strings.HasPrefix(hostname, "10.") ||
-		strings.HasPrefix(hostname, "192.168.") ||
-		strings.HasPrefix(hostname, "172.16.") ||
-		strings.HasPrefix(hostname, "172.17.") ||
-		strings.HasPrefix(hostname, "172.18.") ||
-		strings.HasPrefix(hostname, "172.19.") ||
-		strings.HasPrefix(hostname, "172.20.") ||
-		strings.HasPrefix(hostname, "172.21.") ||
-		strings.HasPrefix(hostname, "172.22.") ||
-		strings.HasPrefix(hostname, "172.23.") ||
-		strings.HasPrefix(hostname, "172.24.") ||
-		strings.HasPrefix(hostname, "172.25.") ||
-		strings.HasPrefix(hostname, "172.26.") ||
-		strings.HasPrefix(hostname, "172.27.") ||
-		strings.HasPrefix(hostname, "172.28.") ||
-		strings.HasPrefix(hostname, "172.29.") ||
-		strings.HasPrefix(hostname, "172.30.") ||
-		strings.HasPrefix(hostname, "172.31.") {
-		return true
-	}
-
-	// IPv6 loopback and local
-	if strings.HasPrefix(hostname, "::1") ||
-		strings.HasPrefix(hostname, "fe80::") ||
-		strings.HasPrefix(hostname, "fc00::") ||
-		strings.HasPrefix(hostname, "fd00::") {
-		return true
+	// Check if hostname is an IP address
+	if ip := net.ParseIP(hostname); ip != nil {
+		// Private IPv4 ranges (RFC1918)
+		if ip.IsPrivate() {
+			return true
+		}
+		// Additional localhost checks for IP formats
+		if ip.IsLoopback() {
+			return true
+		}
+		// Link-local addresses
+		if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return true
+		}
 	}
 
 	return false

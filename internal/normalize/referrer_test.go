@@ -108,6 +108,36 @@ func TestExtractReferrerDomain(t *testing.T) {
 			siteDomain: "example.com",
 			want:       "internal",
 		},
+		{
+			name:       "private IP 172.16.x (RFC1918)",
+			referrer:   "http://172.16.0.1/page",
+			siteDomain: "example.com",
+			want:       "internal",
+		},
+		{
+			name:       "private IP 172.31.x (RFC1918 upper bound)",
+			referrer:   "http://172.31.255.1/page",
+			siteDomain: "example.com",
+			want:       "internal",
+		},
+		{
+			name:       "private IP 172.20.x (middle of range)",
+			referrer:   "http://172.20.50.100/page",
+			siteDomain: "example.com",
+			want:       "internal",
+		},
+		{
+			name:       "public IP 172.15.x (just outside private range)",
+			referrer:   "http://172.15.0.1/page",
+			siteDomain: "example.com",
+			want:       "other", // not internal, but invalid TLD
+		},
+		{
+			name:       "public IP 172.32.x (just outside private range)",
+			referrer:   "http://172.32.0.1/page",
+			siteDomain: "example.com",
+			want:       "other", // not internal, but invalid TLD
+		},
 	}
 
 	for _, tt := range tests {
