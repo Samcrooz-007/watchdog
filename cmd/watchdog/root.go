@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,6 +22,7 @@ import (
 	"notashelf.dev/watchdog/internal/health"
 	"notashelf.dev/watchdog/internal/limits"
 	"notashelf.dev/watchdog/internal/normalize"
+	"notashelf.dev/watchdog/internal/ratelimit"
 )
 
 func Run(cfg *config.Config) error {
@@ -75,7 +77,7 @@ func Run(cfg *config.Config) error {
 	// Setup routes
 	mux := http.NewServeMux()
 
-	// Metrics endpoint with optional basic auth
+	// Metrics endpoint with optional basic auth and rate limiting
 	metricsHandler := promhttp.HandlerFor(promRegistry, promhttp.HandlerOpts{
 		EnableOpenMetrics: true,
 	})
@@ -87,6 +89,10 @@ func Run(cfg *config.Config) error {
 			cfg.Security.MetricsAuth.Password,
 		)
 	}
+
+	// Add rate limiting to metrics endpoint (30 requests per minute)
+	metricsRateLimiter := ratelimit.NewTokenBucket(30, 30, time.Minute)
+	metricsHandler = rateLimitMiddleware(metricsHandler, metricsRateLimiter)
 
 	mux.Handle(cfg.Server.MetricsPath, metricsHandler)
 
@@ -168,7 +174,18 @@ func basicAuth(next http.Handler, username, password string) http.Handler {
 	})
 }
 
-// Sanitizes a path for logging to prevent log injection attacks. Uses strconv.Quote
+// Wraps a handler with rate limiting
+func rateLimitMiddleware(next http.Handler, limiter *ratelimit.TokenBucket) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !limiter.Allow() {
+			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Sanitizes a path for logging to prevent log injection attacks. Uses `strconv.Quote`
 // to properly escape control characters and special bytes.
 func sanitizePathForLog(path string) string {
 	escaped := strconv.Quote(path)
