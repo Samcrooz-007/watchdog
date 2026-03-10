@@ -18,15 +18,18 @@ type UniquesEstimator struct {
 	hll      *hyperloglog.Sketch
 	salt     string
 	rotation string // "daily" or "hourly"
+	saltKey  string // cached time key to avoid regeneration
 	mu       sync.Mutex
 }
 
 // Creates a new unique visitor estimator
 func NewUniquesEstimator(rotation string) *UniquesEstimator {
+	now := time.Now()
 	return &UniquesEstimator{
 		hll:      hyperloglog.New(),
-		salt:     generateSalt(time.Now(), rotation),
+		salt:     generateSalt(now, rotation),
 		rotation: rotation,
+		saltKey:  getSaltKey(now, rotation),
 	}
 }
 
@@ -37,11 +40,13 @@ func (u *UniquesEstimator) Add(ip, userAgent string) {
 	defer u.mu.Unlock()
 
 	// Check if we need to rotate to a new period
-	currentSalt := generateSalt(time.Now(), u.rotation)
-	if currentSalt != u.salt {
+	now := time.Now()
+	currentKey := getSaltKey(now, u.rotation)
+	if currentKey != u.saltKey {
 		// Reset HLL for new period
 		u.hll = hyperloglog.New()
-		u.salt = currentSalt
+		u.salt = generateSaltFromKey(currentKey)
+		u.saltKey = currentKey
 	}
 
 	// Hash visitor with salt to prevent cross-period tracking
@@ -56,18 +61,25 @@ func (u *UniquesEstimator) Estimate() uint64 {
 	return u.hll.Estimate()
 }
 
+// Returns the time-based key for salt generation without hashing
+func getSaltKey(t time.Time, rotation string) string {
+	if rotation == "hourly" {
+		return t.UTC().Format("2006-01-02T15")
+	}
+	return t.UTC().Format("2006-01-02")
+}
+
+// Creates a salt from a pre-computed key
+func generateSaltFromKey(key string) string {
+	h := sha256.Sum256([]byte("watchdog-salt-" + key))
+	return hex.EncodeToString(h[:])
+}
+
 // Generates a deterministic salt based on the rotation mode
 // Daily: same day = same salt, different day = different salt
 // Hourly: same hour = same salt, different hour = different salt
 func generateSalt(t time.Time, rotation string) string {
-	var key string
-	if rotation == "hourly" {
-		key = t.UTC().Format("2006-01-02T15")
-	} else {
-		key = t.UTC().Format("2006-01-02")
-	}
-	h := sha256.Sum256([]byte("watchdog-salt-" + key))
-	return hex.EncodeToString(h[:])
+	return generateSaltFromKey(getSaltKey(t, rotation))
 }
 
 // Creates a privacy-preserving hash of visitor identity
@@ -128,16 +140,20 @@ func (u *UniquesEstimator) Load(path string) error {
 	}
 
 	savedSalt := string(parts[0])
-	currentSalt := generateSalt(time.Now(), u.rotation)
+	now := time.Now()
+	currentKey := getSaltKey(now, u.rotation)
+	currentSalt := generateSaltFromKey(currentKey)
 
 	// Only restore if it's the same period
 	if savedSalt == currentSalt {
 		u.salt = savedSalt
+		u.saltKey = currentKey
 		return u.hll.UnmarshalBinary(parts[1])
 	}
 
 	// Different period, start fresh
 	u.hll = hyperloglog.New()
 	u.salt = currentSalt
+	u.saltKey = currentKey
 	return nil
 }
