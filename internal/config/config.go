@@ -45,11 +45,12 @@ type PathConfig struct {
 
 // Cardinality limits
 type LimitsConfig struct {
-	MaxPaths           int          `yaml:"max_paths"`
-	MaxEventsPerMinute int          `yaml:"max_events_per_minute"`
-	MaxSources         int          `yaml:"max_sources"`
-	MaxCustomEvents    int          `yaml:"max_custom_events"`
-	DeviceBreakpoints  DeviceBreaks `yaml:"device_breakpoints"`
+	MaxPaths            int          `yaml:"max_paths"`
+	MaxEventsPerMinute  int          `yaml:"max_events_per_minute"`
+	MaxSources          int          `yaml:"max_sources"`
+	MaxCustomEvents     int          `yaml:"max_custom_events"`
+	DeviceBreakpoints   DeviceBreaks `yaml:"device_breakpoints"`
+	MaxMetricsPerMinute int          `yaml:"max_metrics_per_minute"` // rate limit for metrics endpoint
 }
 
 // Device classification breakpoints
@@ -72,10 +73,11 @@ type CORSConfig struct {
 }
 
 // Authentication for metrics endpoint
+// Password can be set via environment variable: WATCHDOG_SECURITY_METRICS_AUTH_PASSWORD
 type AuthConfig struct {
 	Enabled  bool   `yaml:"enabled"`
 	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Password string `yaml:"password"` // can use env var WATCHDOG_SECURITY_METRICS_AUTH_PASSWORD
 }
 
 // Server endpoints
@@ -147,6 +149,10 @@ func (c *Config) Validate() error {
 
 	if c.Limits.MaxCustomEvents <= 0 {
 		c.Limits.MaxCustomEvents = 100 // Default
+	}
+
+	if c.Limits.MaxMetricsPerMinute <= 0 {
+		c.Limits.MaxMetricsPerMinute = 30 // Default: 30 requests per minute
 	}
 
 	if c.Site.Path.MaxSegments < 0 {

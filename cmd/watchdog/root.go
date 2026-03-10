@@ -90,9 +90,15 @@ func Run(cfg *config.Config) error {
 		)
 	}
 
-	// Add rate limiting to metrics endpoint (30 requests per minute)
-	metricsRateLimiter := ratelimit.NewTokenBucket(30, 30, time.Minute)
-	metricsHandler = rateLimitMiddleware(metricsHandler, metricsRateLimiter)
+	// Add rate limiting to metrics endpoint
+	if cfg.Limits.MaxMetricsPerMinute > 0 {
+		metricsRateLimiter := ratelimit.NewTokenBucket(
+			cfg.Limits.MaxMetricsPerMinute,
+			cfg.Limits.MaxMetricsPerMinute,
+			time.Minute,
+		)
+		metricsHandler = rateLimitMiddleware(metricsHandler, metricsRateLimiter)
+	}
 
 	mux.Handle(cfg.Server.MetricsPath, metricsHandler)
 
