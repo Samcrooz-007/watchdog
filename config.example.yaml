@@ -63,6 +63,8 @@ limits:
   max_custom_events: 100
   # Maximum events per minute (rate limiting, 0 = unlimited)
   max_events_per_minute: 10000
+  # Maximum metrics endpoint requests per minute (rate limiting, 0 = unlimited, default: 30)
+  max_metrics_per_minute: 60
 
   # Device classification breakpoints (screen width in pixels)
   device_breakpoints:
@@ -85,6 +87,8 @@ security:
       - "*"  # Or specific domains: ["https://example.com", "https://www.example.com"]
 
   # Basic authentication for /metrics endpoint
+  # Password can also be set via environment variable:
+  # - `$ export WATCHDOG_SECURITY_METRICS_AUTH_PASSWORD=your-secret-password`
   metrics_auth:
     enabled: false
     username: "admin"
