@@ -218,6 +218,107 @@ func newTestHandler(cfg *config.Config) *IngestionHandler {
 	return NewIngestionHandler(cfg, pathNorm, pathRegistry, refRegistry, metricsAgg)
 }
 
+func TestExtractIP(t *testing.T) {
+	cfg := &config.Config{
+		Site: config.SiteConfig{
+			Domains: []string{"example.com"},
+		},
+		Limits: config.LimitsConfig{
+			MaxPaths:   100,
+			MaxSources: 50,
+		},
+		Security: config.SecurityConfig{
+			TrustedProxies: []string{"10.0.0.0/8", "192.168.1.1"},
+		},
+	}
+	h := newTestHandler(cfg)
+
+	tests := []struct {
+		name       string
+		remoteAddr string
+		headers    map[string]string
+		want       string
+	}{
+		{
+			name:       "direct connection no proxy",
+			remoteAddr: "192.168.1.100:12345",
+			headers:    map[string]string{},
+			want:       "192.168.1.100",
+		},
+		{
+			name:       "trusted proxy with X-Forwarded-For",
+			remoteAddr: "10.0.0.1:12345",
+			headers: map[string]string{
+				"X-Forwarded-For": "203.0.113.1, 10.0.0.5",
+			},
+			want: "203.0.113.1",
+		},
+		{
+			name:       "trusted proxy with X-Real-IP",
+			remoteAddr: "10.0.0.1:12345",
+			headers: map[string]string{
+				"X-Real-IP": "203.0.113.2",
+			},
+			want: "203.0.113.2",
+		},
+		{
+			name:       "X-Real-IP from trusted network should be ignored",
+			remoteAddr: "10.0.0.1:12345",
+			headers: map[string]string{
+				"X-Real-IP": "10.0.0.50", // trusted network, should fall back
+			},
+			want: "10.0.0.1", // falls back to remoteAddr
+		},
+		{
+			name:       "X-Real-IP invalid IP should be ignored",
+			remoteAddr: "10.0.0.1:12345",
+			headers: map[string]string{
+				"X-Real-IP": "not-an-ip",
+			},
+			want: "10.0.0.1", // falls back
+		},
+		{
+			name:       "untrusted proxy X-Forwarded-For ignored",
+			remoteAddr: "203.0.113.50:12345",
+			headers: map[string]string{
+				"X-Forwarded-For": "1.2.3.4",
+			},
+			want: "203.0.113.50", // uses remoteAddr, ignores header
+		},
+		{
+			name:       "untrusted proxy X-Real-IP ignored",
+			remoteAddr: "203.0.113.50:12345",
+			headers: map[string]string{
+				"X-Real-IP": "1.2.3.4",
+			},
+			want: "203.0.113.50", // uses remoteAddr, ignores header
+		},
+		{
+			name:       "X-Forwarded-For all trusted falls back",
+			remoteAddr: "10.0.0.1:12345",
+			headers: map[string]string{
+				"X-Forwarded-For": "10.0.0.2, 10.0.0.3",
+			},
+			want: "10.0.0.1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("POST", "/api/event", nil)
+			req.RemoteAddr = tt.remoteAddr
+			for k, v := range tt.headers {
+				req.Header.Set(k, v)
+			}
+
+			got := h.extractIP(req)
+			if got != tt.want {
+				t.Errorf("extractIP() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClassifyDevice_UA(t *testing.T) {
 	cfg := &config.Config{
 		Limits: config.LimitsConfig{

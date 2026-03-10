@@ -272,7 +272,12 @@ func (h *IngestionHandler) extractIP(r *http.Request) string {
 
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
+		// Validate the IP format and ensure it's not from a trusted proxy
+		if testIP := net.ParseIP(xri); testIP != nil {
+			if !h.ipInNetworks(xri, h.trustedNetworks) {
+				return xri
+			}
+		}
 	}
 
 	// Fall back to RemoteAddr
