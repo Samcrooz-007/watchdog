@@ -162,7 +162,11 @@ func (m *MetricsAggregator) RecordPageview(path, country, device, referrer, doma
 	labels := prometheus.Labels{"path": sanitizeLabel(path)}
 
 	if m.cfg.Site.Collect.Country {
-		labels["country"] = sanitizeLabel(country)
+		if country == "" {
+			labels["country"] = "unknown"
+		} else {
+			labels["country"] = sanitizeLabel(country)
+		}
 	}
 
 	if m.cfg.Site.Collect.Device {
