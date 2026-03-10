@@ -48,38 +48,36 @@ func (n *PathNormalizer) Normalize(path string) string {
 		path = "/" + path
 	}
 
+	// Process segments in-place to minimize allocations
 	// Split into segments, first element is *always* empty for paths starting with '/'
 	segments := strings.Split(path, "/")
-	if len(segments) > 0 && segments[0] == "" {
-		segments = segments[1:]
-	}
 
-	// Remove empty segments (from double slashes)
-	filtered := make([]string, 0, len(segments))
-	for _, seg := range segments {
-		if seg != "" {
-			filtered = append(filtered, seg)
+	// Process segments in a single pass: remove empty, resolve . and ..
+	writeIdx := 0
+	for i := 0; i < len(segments); i++ {
+		seg := segments[i]
+
+		// Skip empty segments (from double slashes or leading /)
+		if seg == "" {
+			continue
 		}
-	}
-	segments = filtered
 
-	// Resolve . and .. segments
-	resolved := make([]string, 0, len(segments))
-	for _, seg := range segments {
 		if seg == "." {
 			// Skip current directory
 			continue
 		} else if seg == ".." {
 			// Go up one level if possible
-			if len(resolved) > 0 {
-				resolved = resolved[:len(resolved)-1]
+			if writeIdx > 0 {
+				writeIdx--
 			}
 			// If already at root, skip ..
 		} else {
-			resolved = append(resolved, seg)
+			// Keep this segment
+			segments[writeIdx] = seg
+			writeIdx++
 		}
 	}
-	segments = resolved
+	segments = segments[:writeIdx]
 
 	// Collapse numeric segments
 	if n.cfg.CollapseNumericSegments {
