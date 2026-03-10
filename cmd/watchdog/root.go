@@ -198,9 +198,19 @@ func rateLimitMiddleware(next http.Handler, limiter *ratelimit.TokenBucket) http
 // Wraps http.ResponseWriter to enforce max response size
 type limitedResponseWriter struct {
 	http.ResponseWriter
-	maxSize       int
-	written       int
-	limitExceeded bool
+	maxSize        int
+	written        int
+	limitExceeded  bool
+	headersWritten bool
+	statusCode     int
+}
+
+func (w *limitedResponseWriter) WriteHeader(statusCode int) {
+	if !w.headersWritten {
+		w.statusCode = statusCode
+		w.headersWritten = true
+		w.ResponseWriter.WriteHeader(statusCode)
+	}
 }
 
 func (w *limitedResponseWriter) Write(p []byte) (int, error) {
@@ -208,11 +218,33 @@ func (w *limitedResponseWriter) Write(p []byte) (int, error) {
 		return 0, fmt.Errorf("response size limit exceeded")
 	}
 
+	// Check if adding this data would exceed the limit
 	if w.written+len(p) > w.maxSize {
 		w.limitExceeded = true
-		w.Header().Set("X-Response-Truncated", "true")
-		http.Error(w.ResponseWriter, "Response size limit exceeded", http.StatusInternalServerError)
-		return 0, fmt.Errorf("response size limit exceeded: %d bytes", w.maxSize)
+
+		// If headers haven't been written yet, we can send an error response
+		if !w.headersWritten {
+			w.Header().Set("X-Response-Truncated", "true")
+			http.Error(w.ResponseWriter, "Response size limit exceeded", http.StatusInternalServerError)
+			return 0, fmt.Errorf("response size limit exceeded: %d bytes", w.maxSize)
+		}
+
+		// Headers already written - we can't change status code
+		// Write only up to the limit and then stop
+		remaining := w.maxSize - w.written
+		if remaining > 0 {
+			_, _ = w.ResponseWriter.Write(p[:remaining])
+			w.written = w.maxSize
+		}
+		return len(p), fmt.Errorf("response size limit exceeded after headers sent")
+	}
+
+	// Normal write
+	if !w.headersWritten {
+		w.headersWritten = true
+		if w.statusCode == 0 {
+			w.statusCode = http.StatusOK
+		}
 	}
 	n, err := w.ResponseWriter.Write(p)
 	w.written += n

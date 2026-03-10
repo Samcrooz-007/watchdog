@@ -107,6 +107,7 @@ func DailySalt(t time.Time) string {
 }
 
 // Save persists the HLL state to disk
+// Format: saltKey\nsalt\nHLLdata
 func (u *UniquesEstimator) Save(path string) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
@@ -116,11 +117,19 @@ func (u *UniquesEstimator) Save(path string) error {
 		return err
 	}
 
-	// Save both HLL data and current salt
-	return os.WriteFile(path, append([]byte(u.salt+"\n"), data...), 0600)
+	// Save saltKey, salt, and HLL data
+	var buf bytes.Buffer
+	buf.WriteString(u.saltKey)
+	buf.WriteByte('\n')
+	buf.WriteString(u.salt)
+	buf.WriteByte('\n')
+	buf.Write(data)
+
+	return os.WriteFile(path, buf.Bytes(), 0600)
 }
 
 // Load restores the HLL state from disk
+// Supports both new format (saltKey\nsalt\nHLLdata) and old format (salt\nHLLdata)
 func (u *UniquesEstimator) Load(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -133,8 +142,32 @@ func (u *UniquesEstimator) Load(path string) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	// Parse saved salt and HLL data
-	parts := bytes.SplitN(data, []byte("\n"), 2)
+	// Try new format first: saltKey\nsalt\nHLLdata
+	parts := bytes.SplitN(data, []byte("\n"), 3)
+	if len(parts) == 3 {
+		savedSaltKey := string(parts[0])
+		savedSalt := string(parts[1])
+		hllData := parts[2]
+
+		now := time.Now()
+		currentKey := getSaltKey(now, u.rotation)
+
+		// Only restore if it's the same period
+		if savedSaltKey == currentKey {
+			u.salt = savedSalt
+			u.saltKey = savedSaltKey
+			return u.hll.UnmarshalBinary(hllData)
+		}
+
+		// Different period, start fresh
+		u.hll = hyperloglog.New()
+		u.salt = generateSaltFromKey(currentKey)
+		u.saltKey = currentKey
+		return nil
+	}
+
+	// Try old format for backward compatibility: salt\nHLLdata
+	parts = bytes.SplitN(data, []byte("\n"), 2)
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid state file format")
 	}

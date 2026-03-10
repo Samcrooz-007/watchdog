@@ -27,13 +27,14 @@ func NewTokenBucket(capacity, refillPerInterval int, interval time.Duration) *To
 }
 
 // Allow checks if a request should be allowed
+// Uses monotonic time via time.Since() to prevent clock skew issues
 func (tb *TokenBucket) Allow() bool {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
-	// Refill tokens based on elapsed time
-	now := time.Now()
-	elapsed := now.Sub(tb.lastFill)
+	// Refill tokens based on elapsed time using monotonic clock
+	// time.Since() uses monotonic readings when available, unaffected by wall clock changes
+	elapsed := time.Since(tb.lastFill)
 	if elapsed >= tb.interval {
 		periods := int(elapsed / tb.interval)
 		tb.tokens += periods * tb.refill
