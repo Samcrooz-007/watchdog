@@ -29,7 +29,7 @@ in
         ];
       };
 
-    vendorHash = "sha256-qOCa/uj7GS1PYup12Z91zn9w3ovQg4XEHVOLCVP9qZk=";
+    vendorHash = "sha256-778YiWvdfdFtUrEiYLhBONSxjK6caq16LXxQcsHM3Mw=";
 
     ldflags = [
       "-s"
